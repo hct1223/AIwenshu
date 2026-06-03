@@ -1,0 +1,6 @@
+{
+  "name": "赛宝实验室企业合作数据大盘",
+  "description": "提供集团画像、企业画像、数据大盘研判、多维度指标筛选以及AI对话生成可视化数据分析报告等核心子系统。聚焦展示工业和信息化部电子第五研究所（赛宝实验室）同各行业头部企业间的检测、校准、测试和认证业务往来，并建立智能预警指标体系。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
