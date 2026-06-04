@@ -6,29 +6,69 @@
 import React, { useState } from 'react';
 import { GROUP_MOCK_LIST, COMP_MOCK_LIST } from '../data/mockData';
 import { GroupData } from '../types';
-import { 
-  ShieldCheck, 
-  AlertTriangle, 
-  ArrowRight, 
-  Building2, 
-  MapPin, 
-  TrendingUp, 
+import {
+  ShieldCheck,
+  AlertTriangle,
+  ArrowRight,
+  Building2,
+  MapPin,
+  TrendingUp,
   Calendar,
   AlertCircle,
   HelpCircle,
   TrendingDown,
-  Info
+  Info,
+  Sparkles,
+  Lightbulb,
+  Target
 } from 'lucide-react';
 
 interface GroupModuleProps {
+  activeGroupId: string;
   onNavigateToCompany: (id: string) => void;
 }
 
-export default function GroupModule({ onNavigateToCompany }: GroupModuleProps) {
-  // Active Group Tab State
-  const [activeGroupId, setActiveGroupId] = useState<string>('group-huawei');
-
+export default function GroupModule({ activeGroupId, onNavigateToCompany }: GroupModuleProps) {
   const activeGroup = GROUP_MOCK_LIST.find(g => g.id === activeGroupId) || GROUP_MOCK_LIST[0];
+
+  // Hover state for region popup
+  const [hoveredRegion, setHoveredRegion] = useState<string | null>(null);
+
+  // Hover state for business type popup
+  const [hoveredBusiness, setHoveredBusiness] = useState<string | null>(null);
+
+  // 定义业务类型的子级业务数据
+  const businessSubTypes = {
+    '元器件检测与筛分': [
+      { name: 'IC芯片失效分析', amount: 680 },
+      { name: '功率器件筛选测试', amount: 420 },
+      { name: '可靠性环境试验', amount: 300 },
+      { name: '物料质量检验', amount: 120 }
+    ],
+    '可靠性试验认证': [
+      { name: '环境应力筛选', amount: 450 },
+      { name: '电磁兼容测试', amount: 380 },
+      { name: '安全认证测试', amount: 280 },
+      { name: '可靠性增长试验', amount: 100 }
+    ],
+    '计量校准服务': [
+      { name: '长度计量校准', amount: 320 },
+      { name: '电学计量校准', amount: 280 },
+      { name: '热工计量校准', amount: 180 },
+      { name: '无线电计量', amount: 100 }
+    ],
+    '软件评测与安全': [
+      { name: '软件安全测试', amount: 280 },
+      { name: '系统性能评估', amount: 140 },
+      { name: '代码审计服务', amount: 80 },
+      { name: '渗透测试', amount: 20 }
+    ],
+    '其他技术服务': [
+      { name: '技术咨询服务', amount: 120 },
+      { name: '培训服务', amount: 60 },
+      { name: '设备维护服务', amount: 40 }
+    ]
+  };
 
   // Handler to see if we can link a sub company name to our company mock list ID
   const handleDeepDiveSub = (subName: string) => {
@@ -56,32 +96,6 @@ export default function GroupModule({ onNavigateToCompany }: GroupModuleProps) {
         <p className="mt-1 text-sm text-slate-500">
           全息展现核心企业集团旗下参控股机构、非直属研究所以及其在赛宝实验室的整体合作分布、协同潜力与预警警示
         </p>
-      </div>
-
-      {/* Group Selector Tab Buttons */}
-      <div className="flex gap-2 p-1 bg-slate-100 rounded-lg max-w-md">
-        {GROUP_MOCK_LIST.map((group) => {
-          const isActive = group.id === activeGroupId;
-          return (
-            <button
-              key={group.id}
-              onClick={() => setActiveGroupId(group.id)}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 text-xs font-semibold rounded-md transition ${
-                isActive 
-                  ? 'bg-white text-indigo-700 shadow-sm' 
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <img 
-                src={group.logo} 
-                alt={group.name} 
-                className="h-4 w-4 object-contain rounded-full"
-                referrerPolicy="no-referrer"
-              />
-              {group.name}
-            </button>
-          );
-        })}
       </div>
 
       {/* Main Grid Content */}
@@ -136,7 +150,206 @@ export default function GroupModule({ onNavigateToCompany }: GroupModuleProps) {
             </div>
           </div>
 
-          {/* Card B: Subsidiaries Directory Grid */}
+          {/* Card B: Group Business Overview */}
+          <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-xs">
+            <div className="flex items-center gap-1.5 border-b border-slate-50 pb-3 mb-4">
+              <TrendingUp className="h-4 w-4 text-emerald-500" />
+              <h4 className="font-semibold text-slate-900 text-sm">集团业务情况概览</h4>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              {/* 总体业务指标 */}
+              <div className="space-y-3">
+                <div className="text-[11px] font-semibold text-slate-700">集团合作总体指标</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+                    <div className="text-[9px] text-slate-400">合作机构数</div>
+                    <div className="text-lg font-bold text-indigo-600">{activeGroup.partneredCompanies} 家</div>
+                  </div>
+                  <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+                    <div className="text-[9px] text-slate-400">合作渗透率</div>
+                    <div className="text-lg font-bold text-emerald-600">
+                      {((activeGroup.partneredCompanies / activeGroup.totalSubCompanies) * 100).toFixed(1)}%
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 主要合作业务类型 */}
+              <div className="space-y-3">
+                <div className="text-[11px] font-semibold text-slate-700">主要合作业务类型</div>
+                <div className="space-y-2">
+                  {[
+                    { name: '元器件检测与筛分', percent: 35, amount: 1520 },
+                    { name: '可靠性试验认证', percent: 28, amount: 1210 },
+                    { name: '计量校准服务', percent: 20, amount: 880 },
+                    { name: '软件评测与安全', percent: 12, amount: 520 },
+                    { name: '其他技术服务', percent: 5, amount: 220 }
+                  ].map((business, idx) => (
+                    <div key={idx} className="relative">
+                      <div
+                        className="space-y-1 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"
+                        onMouseEnter={() => setHoveredBusiness(business.name)}
+                        onMouseLeave={() => setHoveredBusiness(null)}
+                      >
+                        <div className="flex justify-between text-[10px]">
+                          <span className="text-slate-600 flex items-center gap-1">
+                            <TrendingUp className="h-3 w-3 text-emerald-500" />
+                            {business.name}
+                          </span>
+                          <span className="text-slate-500">{business.percent}% · ¥{business.amount}万</span>
+                        </div>
+                        <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                          <div
+                            className="h-full bg-emerald-500 rounded-full"
+                            style={{ width: `${business.percent}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Hover Popup */}
+                      {hoveredBusiness === business.name && (
+                        <div className="absolute left-full top-0 ml-2 w-72 bg-white rounded-lg shadow-xl border border-slate-200 p-3 z-10">
+                          <div className="text-xs font-semibold text-slate-900 mb-2 pb-2 border-b border-slate-100">
+                            {business.name} - 子级业务详情
+                          </div>
+                          <div className="space-y-2">
+                            {businessSubTypes[business.name as keyof typeof businessSubTypes]?.map((subType, sIdx) => (
+                              <div key={sIdx} className="flex justify-between items-center text-[10px]">
+                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                  <div className="h-1 w-1 rounded-full bg-emerald-500 shrink-0" />
+                                  <span className="truncate text-slate-600">{subType.name}</span>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <span className="font-mono text-emerald-600 font-semibold">
+                                    ¥{subType.amount}万
+                                  </span>
+                                  <span className="text-[8px] text-slate-400 bg-slate-50 px-1 rounded">
+                                    {((subType.amount / business.amount) * 100).toFixed(0)}%
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="mt-2 pt-2 border-t border-slate-100 text-[9px] text-slate-400 flex justify-between">
+                            <span>该业务类型共包含 {businessSubTypes[business.name as keyof typeof businessSubTypes]?.length || 0} 个子级业务</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 业务分布 */}
+              <div className="space-y-3">
+                <div className="text-[11px] font-semibold text-slate-700">大区业务分布</div>
+                <div className="space-y-2">
+                  {['华南', '华北', '华东', '西北'].map((region, idx) => {
+                    const regionCount = activeGroup.subCompanies.filter(sub => sub.region === region).length;
+                    const regionPercent = ((regionCount / activeGroup.totalSubCompanies) * 100).toFixed(0);
+                    const regionTotal = activeGroup.subCompanies
+                      .filter(sub => sub.region === region && sub.isPartnered)
+                      .reduce((sum, sub) => sum + sub.cooperationAmount, 0);
+                    const regionSubs = activeGroup.subCompanies.filter(sub => sub.region === region);
+
+                    return (
+                      <div key={idx} className="relative">
+                        <div
+                          className="space-y-1 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"
+                          onMouseEnter={() => setHoveredRegion(region)}
+                          onMouseLeave={() => setHoveredRegion(null)}
+                        >
+                          <div className="flex justify-between text-[10px]">
+                            <span className="text-slate-600 flex items-center gap-1">
+                              <MapPin className="h-3 w-3 text-indigo-500" />
+                              {region}大区
+                            </span>
+                            <span className="text-slate-500">{regionCount}机构 ({regionPercent}%) · ¥{(regionTotal / 1000).toFixed(0)}k万</span>
+                          </div>
+                          <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                            <div
+                              className="h-full bg-indigo-500 rounded-full"
+                              style={{ width: `${regionPercent}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Hover Popup */}
+                        {hoveredRegion === region && (
+                          <div className="absolute left-full top-0 ml-2 w-64 bg-white rounded-lg shadow-xl border border-slate-200 p-3 z-10">
+                            <div className="text-xs font-semibold text-slate-900 mb-2 pb-2 border-b border-slate-100">
+                              {region}大区子公司详情
+                            </div>
+                            <div className="space-y-2">
+                              {regionSubs.map((sub, sIdx) => (
+                                <div key={sIdx} className="flex justify-between items-center text-[10px]">
+                                  <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                    <div className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                                      sub.isPartnered ? 'bg-indigo-500' : 'bg-slate-300'
+                                    }`} />
+                                    <span className="truncate text-slate-600">{sub.name.slice(0, 12)}...</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    {sub.isPartnered && (
+                                      <span className="font-mono text-indigo-600 font-semibold">
+                                        ¥{sub.cooperationAmount}万
+                                      </span>
+                                    )}
+                                    <span className={`text-[8px] px-1 rounded ${
+                                      sub.priority.includes('P0') ? 'bg-rose-100 text-rose-700' :
+                                      sub.priority.includes('P1') ? 'bg-amber-100 text-amber-700' :
+                                      'bg-slate-100 text-slate-600'
+                                    }`}>
+                                      {sub.priority.slice(0, 2)}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            {regionSubs.length === 0 && (
+                              <div className="text-[10px] text-slate-400 text-center py-2">
+                                该地区暂无子公司
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* 优先级分布 */}
+            <div>
+              <div className="text-[11px] font-semibold text-slate-700 mb-3">开发优先级分布</div>
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {['极高 P0', '高 P1', '中 P2', '核心挖掘', '战略储备'].map((priority, idx) => {
+                  const priorityCount = activeGroup.subCompanies.filter(sub => sub.priority === priority).length;
+                  const priorityPercent = ((priorityCount / activeGroup.totalSubCompanies) * 100).toFixed(0);
+                  const isHigh = ['极高 P0', '高 P1'].includes(priority);
+
+                  return (
+                    <div
+                      key={idx}
+                      className={`flex-shrink-0 w-24 rounded-lg p-2 border text-center ${
+                        isHigh ? 'bg-rose-50 border-rose-200' : 'bg-slate-50 border-slate-200'
+                      }`}
+                    >
+                      <div className="text-[9px] text-slate-400">{priority}</div>
+                      <div className={`text-lg font-bold ${isHigh ? 'text-rose-600' : 'text-slate-700'}`}>
+                        {priorityCount}
+                      </div>
+                      <div className="text-[9px] text-slate-400">{priorityPercent}%</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Card C: Subsidiaries Directory Grid */}
           <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-xs">
             <div className="flex items-center justify-between border-b border-slate-50 pb-3 mb-4">
               <div>
@@ -149,80 +362,110 @@ export default function GroupModule({ onNavigateToCompany }: GroupModuleProps) {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-100 text-[11px] font-medium text-slate-400 uppercase">
-                    <th className="py-2.5 px-3">子公司名称 / 机构代码</th>
-                    <th className="py-2.5 px-3">大区分布</th>
-                    <th className="py-2.5 px-3">签约状态</th>
-                    <th className="py-2.5 px-3">合作金额 (万元)</th>
-                    <th className="py-2.5 px-3">开发优先级</th>
-                    <th className="py-2.5 px-3 text-right">操作</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50 text-xs">
-                  {activeGroup.subCompanies.map((sub, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50/50 transition">
-                      <td className="py-3 px-3">
-                        <div className="flex items-center gap-2">
-                          <span className={`h-1.5 w-1.5 rounded-full ${sub.isPartnered ? 'bg-indigo-500' : 'bg-slate-300'}`} />
-                          <span className="font-medium text-slate-700 break-all">{sub.name}</span>
+            {/* 子公司整行卡片展示 */}
+            <div className="space-y-3">
+              {activeGroup.subCompanies.map((sub, idx) => (
+                <div
+                  key={idx}
+                  className="bg-slate-50 rounded-xl p-4 border border-slate-200 hover:border-indigo-300 hover:shadow-md transition-all"
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    {/* 左侧：基本信息 */}
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      {/* 状态指示点 */}
+                      <div className={`h-2 w-2 rounded-full shrink-0 ${
+                        sub.isPartnered ? 'bg-indigo-500' : 'bg-slate-300'
+                      }`} />
+
+                      {/* 机构名称 */}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-slate-900 text-sm truncate">{sub.name}</div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-slate-500 font-mono text-[10px] bg-white border border-slate-100 px-1.5 py-0.5 rounded">
+                            {sub.region}大区
+                          </span>
+                          {sub.isPartnered && (
+                            <span className="inline-flex rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 border border-indigo-100">
+                              已合作
+                            </span>
+                          )}
                         </div>
-                      </td>
-                      <td className="py-3 px-3">
-                        <span className="text-slate-500 font-mono text-[11px] bg-slate-50 border border-slate-100 px-1 py-0.5 rounded">
-                          {sub.region}大区
-                        </span>
-                      </td>
-                      <td className="py-3 px-3">
-                        {sub.isPartnered ? (
-                          <span className="inline-flex rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 border border-indigo-100">
-                            已合作
-                          </span>
-                        ) : (
-                          <span className="inline-flex rounded-full bg-slate-100 text-slate-400 text-[10px] px-2 py-0.5 border border-slate-200">
-                            非直属/待开发
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3 px-3">
-                        <span className="font-mono font-semibold text-slate-800">
+                      </div>
+                    </div>
+
+                    {/* 中间：核心指标 */}
+                    <div className="flex items-center gap-6 shrink-0">
+                      {/* 合作金额 */}
+                      <div className="text-center">
+                        <div className="text-[9px] text-slate-400">合作金额</div>
+                        <div className="font-mono font-semibold text-slate-800 text-sm">
                           {sub.isPartnered ? `￥${sub.cooperationAmount}` : '-'}
-                        </span>
-                      </td>
-                      <td className="py-3 px-3">
-                        <span className={`inline-flex rounded px-1.5 py-0.5 text-[9px] font-bold ${
+                        </div>
+                      </div>
+
+                      {/* 最后合作时间 */}
+                      <div className="text-center">
+                        <div className="text-[9px] text-slate-400">最近合作</div>
+                        <div className="font-mono text-slate-600 text-xs">{sub.lastDate}</div>
+                      </div>
+
+                      {/* 优先级 */}
+                      <div>
+                        <span className={`inline-flex rounded px-2 py-1 text-[10px] font-bold ${
                           sub.priority.includes('P0') ? 'bg-rose-50 text-rose-700 border border-rose-100' :
                           sub.priority.includes('P1') ? 'bg-amber-50 text-amber-700 border border-amber-100' :
                           sub.priority.includes('P2') ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' :
-                          'bg-slate-100 text-slate-500 border border-slate-200'
+                          'bg-slate-100 text-slate-600 border border-slate-200'
                         }`}>
                           {sub.priority}
                         </span>
-                      </td>
-                      <td className="py-3 px-3 text-right">
-                        {sub.isPartnered ? (
-                          <button
-                            onClick={() => handleDeepDiveSub(sub.name)}
-                            className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 transition inline-flex items-center gap-0.5"
-                          >
-                            剖析画像
-                            <ArrowRight className="h-3 w-3" />
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => alert(`已为该子机构（${sub.name}）自动拉起赛宝实验室专项开发立项表单！当前优先级标等为：${sub.priority}。`)}
-                            className="text-[11px] font-semibold text-emerald-600 hover:text-emerald-800 transition"
-                          >
-                            立项开发
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+                    </div>
+
+                    {/* 右侧：操作按钮 */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {sub.isPartnered ? (
+                        <button
+                          onClick={() => handleDeepDiveSub(sub.name)}
+                          className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition flex items-center gap-1.5 shadow-sm"
+                        >
+                          剖析画像
+                          <ArrowRight className="h-3.5 w-3.5" />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => alert(`已为该子机构（${sub.name}）自动拉起赛宝实验室专项开发立项表单！当前优先级标等为：${sub.priority}。`)}
+                          className="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition shadow-sm"
+                        >
+                          立项开发
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 已合作机构的详细信息展开 */}
+                  {sub.isPartnered && (
+                    <div className="mt-3 pt-3 border-t border-slate-200 grid grid-cols-4 gap-3 text-[10px]">
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-400">合作状态:</span>
+                        <span className="font-medium text-emerald-700">履行中</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-400">合作时长:</span>
+                        <span className="font-medium text-slate-700">3年+</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-400">年度频次:</span>
+                        <span className="font-medium text-slate-700">高频(12+)</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-400">满意度:</span>
+                        <span className="font-medium text-indigo-600">优秀</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
 
@@ -276,24 +519,59 @@ export default function GroupModule({ onNavigateToCompany }: GroupModuleProps) {
             </div>
           </div>
 
-          {/* Action Pathways Recommended by AI */}
-          <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-xs">
-            <div className="flex items-center gap-1.5 border-b border-slate-50 pb-3 mb-4">
-              <ShieldCheck className="h-4 w-4 text-emerald-500" />
-              <h4 className="font-semibold text-slate-900 text-sm">推荐推进与突围跟进路径</h4>
+          {/* AI Intelligent Analysis Module */}
+          <div className="bg-gradient-to-br from-indigo-50 to-white rounded-xl p-5 border border-indigo-100 shadow-xs">
+            <div className="flex items-center gap-1.5 border-b border-indigo-100/50 pb-3 mb-4">
+              <Sparkles className="h-4 w-4 text-indigo-600" />
+              <h4 className="font-semibold text-slate-900 text-sm">AI 智能分析与建议</h4>
             </div>
 
-            <div className="space-y-4 relative pl-3 border-l border-slate-100/80 ml-2">
-              {activeGroup.recommendationPaths.map((rec) => (
-                <div key={rec.step} className="relative space-y-1">
-                  {/* Bullet number count with layout styling */}
-                  <div className="absolute -left-[21px] top-0.5 h-3.5 w-3.5 rounded-full bg-indigo-600 text-[8px] font-bold text-white flex items-center justify-center font-sans">
-                    {rec.step}
+            {/* Overall Situation Analysis */}
+            <div className="mb-4">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Target className="h-3.5 w-3.5 text-indigo-600" />
+                <h5 className="text-xs font-bold text-slate-800">整体情况分析</h5>
+              </div>
+              <div className="bg-white rounded-lg p-3 border border-slate-100 text-[11px] text-slate-600 leading-relaxed space-y-2">
+                <p><span className="font-semibold text-slate-800">合作规模：</span>{activeGroup.name}当前与赛宝实验室合作的机构数量达<span className="font-mono font-bold text-indigo-600">{activeGroup.partneredCompanies}</span>家，集团整体渗透率达到<span className="font-mono font-bold text-emerald-600">{((activeGroup.partneredCompanies / activeGroup.totalSubCompanies) * 100).toFixed(1)}%</span>，在同类集团中处于{activeGroup.growthCategory === '高增长类' ? '领先' : '稳健'}水平。</p>
+                <p><span className="font-semibold text-slate-800">业务分布：</span>主要合作集中在元器件检测与筛分（35%）、可靠性试验认证（28%）和计量校准服务（20%），业务结构较为均衡，技术覆盖面广。</p>
+                <p><span className="font-semibold text-slate-800">风险评估：</span>当前存在{activeGroup.riskHighlights.length}个中等风险预警，主要集中在部分子公司合作频度下降和外部竞争压力增加方面，需要加强客户关系维护。</p>
+                <p><span className="font-semibold text-slate-800">潜力评估：</span>AI综合评分为<span className="font-mono font-bold text-indigo-600">{activeGroup.aiPotentialScore}</span>分，具备{activeGroup.growthCategory === '高增长类' ? '高增长潜力' : '稳定发展基础'}，建议作为重点跟进对象。</p>
+              </div>
+            </div>
+
+            {/* AI Recommendations */}
+            <div>
+              <div className="flex items-center gap-1.5 mb-2">
+                <Lightbulb className="h-3.5 w-3.5 text-amber-600" />
+                <h5 className="text-xs font-bold text-slate-800">智能化建议</h5>
+              </div>
+              <div className="space-y-2">
+                {activeGroup.recommendationPaths.map((rec, idx) => (
+                  <div key={rec.step} className="bg-white rounded-lg p-3 border border-slate-100">
+                    <div className="flex items-start gap-2">
+                      <div className="bg-indigo-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0">
+                        {idx + 1}
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-bold text-slate-800 text-xs mb-1">{rec.title}</div>
+                        <p className="text-slate-500 text-[11px] leading-relaxed">{rec.description}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="font-bold text-slate-800 text-xs pl-2.5">{rec.title}</div>
-                  <p className="text-slate-400 text-[11px] leading-relaxed pl-2.5">{rec.description}</p>
+                ))}
+                <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-100">
+                  <div className="flex items-start gap-2">
+                    <Info className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-bold text-indigo-900 text-xs mb-1">关键提醒</div>
+                      <p className="text-indigo-700 text-[11px] leading-relaxed">
+                        该集团风险系数评分较前月浮升1.2%。建议指派华南技推专员于Q2结束前实施至少一轮"高低温循环可靠性标对宣讲"，重点关注风险预警中的3家子公司。
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              ))}
+              </div>
             </div>
           </div>
 

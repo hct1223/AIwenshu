@@ -4,43 +4,52 @@
  */
 
 import React, { useState } from 'react';
-import { 
-  Building2, 
-  BarChart3, 
-  PieChart, 
-  CircleUser, 
-  LayoutDashboard, 
-  MessageSquareCode, 
-  SearchCode, 
+import {
+  Building2,
+  BarChart3,
+  PieChart,
+  CircleUser,
+  LayoutDashboard,
+  MessageSquareCode,
+  SearchCode,
   User,
   Users,
   Building,
   Menu,
-  X
+  X,
+  Sparkles,
+  FileText,
+  Newspaper
 } from 'lucide-react';
 
 import DashboardModule from './components/DashboardModule';
 import GroupModule from './components/GroupModule';
+import GroupListModule from './components/GroupListModule';
 import EnterpriseModule from './components/EnterpriseModule';
 import SearchModule from './components/SearchModule';
 import AIQueryModule from './components/AIQueryModule';
+import AIChatSidebar from './components/AIChatSidebar';
+import BusinessReportModule from './components/BusinessReportModule';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [activeCompanyId, setActiveCompanyId] = useState<string>('comp-huawei-tech');
+  const [activeGroupId, setActiveGroupId] = useState<string>('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+  const [aiChatOpen, setAiChatOpen] = useState<boolean>(false);
 
   // Dynamic router to switch views
   const renderModule = () => {
     switch(activeTab) {
       case 'dashboard':
         return (
-          <DashboardModule 
+          <DashboardModule
             onNavigateToCompany={(id) => {
               setActiveCompanyId(id);
               setActiveTab('enterprisePortrait');
             }}
             onNavigateToGroup={(id) => {
+              setActiveGroupId(id);
               setActiveTab('groupPortrait');
             }}
             onNavigateToTab={(tabId) => {
@@ -49,17 +58,29 @@ export default function App() {
           />
         );
       case 'groupPortrait':
-        return (
-          <GroupModule 
-            onNavigateToCompany={(id) => {
-              setActiveCompanyId(id);
-              setActiveTab('enterprisePortrait');
-            }}
-          />
-        );
+        // 如果有activeGroupId，显示集团详情，否则显示集团列表
+        if (activeGroupId) {
+          return (
+            <GroupModule
+              activeGroupId={activeGroupId}
+              onNavigateToCompany={(id) => {
+                setActiveCompanyId(id);
+                setActiveTab('enterprisePortrait');
+              }}
+            />
+          );
+        } else {
+          return (
+            <GroupListModule
+              onNavigateToGroup={(id) => {
+                setActiveGroupId(id);
+              }}
+            />
+          );
+        }
       case 'enterprisePortrait':
         return (
-          <EnterpriseModule 
+          <EnterpriseModule
             activeCompanyId={activeCompanyId}
             onNavigateToCompany={(id) => {
               setActiveCompanyId(id);
@@ -68,7 +89,7 @@ export default function App() {
         );
       case 'enterpriseSearch':
         return (
-          <SearchModule 
+          <SearchModule
             onNavigateToCompany={(id) => {
               setActiveCompanyId(id);
               setActiveTab('enterprisePortrait');
@@ -77,13 +98,16 @@ export default function App() {
         );
       case 'aiQuery':
         return <AIQueryModule />;
+      case 'businessReport':
+        return <BusinessReportModule />;
       default:
-        return <DashboardModule 
+        return <DashboardModule
           onNavigateToCompany={(id) => {
             setActiveCompanyId(id);
             setActiveTab('enterprisePortrait');
           }}
           onNavigateToGroup={(id) => {
+            setActiveGroupId(id);
             setActiveTab('groupPortrait');
           }}
           onNavigateToTab={(tabId) => {
@@ -94,10 +118,12 @@ export default function App() {
   };
 
   const navMenuItems = [
+    { id: 'aiChat', label: 'AI智能对话', desc: 'AI data analysis chat', icon: Sparkles },
     { id: 'dashboard', label: '数据大盘研判', desc: 'Cockpit overview', icon: LayoutDashboard },
-    { id: 'groupPortrait', label: '集团级穿透画像', desc: 'Corporate group profiles', icon: Users },
-    { id: 'enterprisePortrait', label: '企业立体深度画像', desc: 'Detailed business records', icon: Building },
-    { id: 'enterpriseSearch', label: '指标多维筛选', desc: 'Benchmark comparison', icon: SearchCode },
+    { id: 'businessReport', label: '每周动态', desc: 'Weekly dynamics', icon: Newspaper },
+    { id: 'groupPortrait', label: '集团画像', desc: 'Corporate group profiles', icon: Users },
+    { id: 'enterprisePortrait', label: '企业画像', desc: 'Enterprise profile', icon: Building },
+    { id: 'enterpriseSearch', label: '企业搜索', desc: 'Enterprise search', icon: SearchCode },
     { id: 'aiQuery', label: 'AI智能问数决策', desc: 'Visual report center', icon: MessageSquareCode },
   ];
 
@@ -145,22 +171,35 @@ export default function App() {
                   key={menu.id}
                   id={`sidebar-tab-button-${menu.id}`}
                   onClick={() => {
-                    setActiveTab(menu.id);
+                    if (menu.id === 'aiChat') {
+                      setAiChatOpen(!aiChatOpen);
+                    } else {
+                      setActiveTab(menu.id);
+                    }
                     setMobileMenuOpen(false);
                   }}
                   className={`w-full flex items-center gap-3.5 py-2.5 px-3.5 rounded-lg text-left text-xs font-medium tracking-tight transition duration-150 ${
-                    isActive 
-                      ? 'bg-indigo-650 text-white font-semibold shadow-xs' 
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+                    menu.id === 'aiChat'
+                      ? (aiChatOpen ? 'bg-indigo-650 text-white font-semibold shadow-xs' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40')
+                      : (isActive ? 'bg-indigo-650 text-white font-semibold shadow-xs' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40')
                   }`}
                 >
-                  <Icon className={`h-4.5 w-4.5 shrink-0 ${isActive ? 'text-white' : 'text-slate-450'}`} />
+                  <Icon className={`h-4.5 w-4.5 shrink-0 ${
+                    menu.id === 'aiChat'
+                      ? (aiChatOpen ? 'text-white' : 'text-slate-450')
+                      : (isActive ? 'text-white' : 'text-slate-450')
+                  }`} />
                   <div>
                     <div>{menu.label}</div>
                     <div className="text-[9px] text-slate-500 font-sans tracking-wider mt-0.5 uppercase">
                       {menu.desc}
                     </div>
                   </div>
+                  {menu.id === 'aiChat' && (
+                    <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded bg-indigo-600/20 text-indigo-300">
+                      {aiChatOpen ? '展开中' : '点击展开'}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -182,8 +221,13 @@ export default function App() {
       </aside>
 
       {/* 2. Main Display Arena Column */}
-      <main id="saibao-main-stage" className="flex-1 overflow-x-hidden min-h-screen">
-        
+      <main
+        id="saibao-main-stage"
+        className={`
+          flex-1 overflow-x-hidden min-h-screen transition-all duration-300
+          ${aiChatOpen ? 'mr-[480px] sm:mr-[576px]' : ''}
+        `}
+      >
         {/* Top Floating Dashboard Alert bar (Dynamic non-printable header) */}
         <header className="no-print bg-white border-b border-slate-100/85 px-6 py-4 sticky top-0 z-40 hidden md:flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs text-slate-400">
@@ -204,6 +248,16 @@ export default function App() {
           {renderModule()}
         </div>
       </main>
+
+      {/* 3. AI Chat Sidebar */}
+      <AIChatSidebar
+        isOpen={aiChatOpen}
+        onToggle={() => setAiChatOpen(!aiChatOpen)}
+        onNavigateToCompany={(id) => {
+          setActiveCompanyId(id);
+          setActiveTab('enterprisePortrait');
+        }}
+      />
 
     </div>
   );

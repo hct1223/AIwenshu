@@ -6,487 +6,1027 @@
 import React, { useState, useMemo } from 'react';
 import { COMP_MOCK_LIST } from '../data/mockData';
 import { Company } from '../types';
-import { 
-  Search, 
-  MapPin, 
-  Sparkles, 
-  SlidersHorizontal, 
-  X, 
-  Check, 
-  ArrowLeftRight, 
-  Building2, 
-  TrendingUp, 
-  Calendar,
-  DollarSign,
-  User,
+import {
+  Search,
+  SlidersHorizontal,
+  X,
+  Check,
+  ArrowLeftRight,
+  Building2,
   ShieldCheck,
-  ChevronRight
+  ChevronRight,
+  ArrowRight,
+  Sparkles,
+  Tag,
+  Calendar,
+  Building,
+  DollarSign,
+  Clock,
+  TrendingUp,
+  MapPin,
+  Award,
+  Star,
+  Target,
+  BarChart3
 } from 'lucide-react';
 
 interface SearchModuleProps {
   onNavigateToCompany: (id: string) => void;
 }
 
-export default function SearchModule({ onNavigateToCompany }: SearchModuleProps) {
-  // Filters state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedIndustry, setSelectedIndustry] = useState('All');
-  const [selectedPartnership, setSelectedPartnership] = useState('All');
-  const [selectedRegion, setSelectedRegion] = useState('All');
-  const [selectedAiScoreRange, setSelectedAiScoreRange] = useState('All');
+// 两级搜索标签结构
+const SEARCH_TEMPLATES = [
+  {
+    id: 'time',
+    category: '合作时间',
+    tags: ['2023年合作', '2024年活跃', '近两年新增', '近一年高频', '历史合作']
+  },
+  {
+    id: 'department',
+    category: '主办部门',
+    tags: ['元器件检测所', '低空产业部', '技推处', '软件评测中心', '可靠性试验室', '计量校准所']
+  },
+  {
+    id: 'business',
+    category: '业务类型',
+    tags: ['失效分析', '计量校准', '软件评测', '环境试验', '产品开发', '认证评估', 'TSQ培训']
+  },
+  {
+    id: 'amount',
+    category: '合作金额',
+    tags: ['5000万以上', '1000-5000万', '500-1000万', '100-500万']
+  },
+  {
+    id: 'partnership',
+    category: '合作层级',
+    tags: ['战略级', '核心供应商', '意向重点', '长期合作']
+  },
+  {
+    id: 'growth',
+    category: '增长类别',
+    tags: ['高增长类', '稳健型', '初创潜力']
+  },
+  {
+    id: 'region',
+    category: '地区分布',
+    tags: ['华南地区', '华北地区', '华东地区', '华中地区', '西北地区']
+  },
+  {
+    id: 'score',
+    category: '评分范围',
+    tags: ['AI评分90分以上', 'AI评分80-90分', '合规评分95分以上']
+  },
+  {
+    id: 'risk',
+    category: '风险等级',
+    tags: ['低风险', '风险指数10以下', '稳健经营']
+  },
+  {
+    id: 'tag',
+    category: '企业标签',
+    tags: ['中国百强', '上市企业', '高新技术', '独角兽', '行业龙头', '央企国企']
+  }
+];
 
-  // Comparison selector inside search
-  const [compareIds, setCompareIds] = useState<string[]>(['comp-huawei-tech', 'comp-zte']);
+// 预设标签组合提示词
+const SEARCH_COMBINATIONS = [
+  {
+    id: 'high-value-strategic',
+    title: '高价值战略客户',
+    description: '寻找合作金额高、战略级、高质量的企业',
+    keywords: '5000万以上 战略级 AI评分90分以上 低风险'
+  },
+  {
+    id: 'growth-potential',
+    title: '高增长潜力企业',
+    description: '快速成长、华南地区、高新技术、初创潜力',
+    keywords: '高增长类 华南地区 高新技术 初创潜力'
+  },
+  {
+    id: 'stable-partners',
+    title: '稳健长期合作伙伴',
+    description: '合作时间长、稳健型、低风险、计量校准业务',
+    keywords: '历史合作 稳健型 低风险 计量校准'
+  },
+  {
+    id: 'tech-innovation',
+    title: '科技创新重点企业',
+    description: '软件评测、失效分析、华东地区、上市企业',
+    keywords: '软件评测 失效分析 华东地区 上市企业'
+  },
+  {
+    id: 'emerging-markets',
+    title: '新兴市场潜力客户',
+    description: '近一年高频、意向重点、华北地区、行业龙头',
+    keywords: '近一年高频 意向重点 华北地区 行业龙头'
+  },
+  {
+    id: 'low-aerospace',
+    title: '低空产业专项客户',
+    description: '低空产业部、环境试验、高增长、华中地区',
+    keywords: '低空产业部 环境试验 高增长类 华中地区'
+  }
+];
+
+export default function SearchModule({ onNavigateToCompany }: SearchModuleProps) {
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
+  const [parsedConditions, setParsedConditions] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Comparison state
+  const [compareIds, setCompareIds] = useState<string[]>([]);
   const [comparisonActive, setComparisonActive] = useState(false);
 
-  // Industries list extracted for selector
-  const industries = useMemo(() => {
-    const list = new Set<string>();
-    COMP_MOCK_LIST.forEach(c => list.add(c.industry));
-    return ['All', ...Array.from(list)];
-  }, []);
+  // 企业别名映射表
+  const COMPANY_ALIASES: Record<string, string[]> = {
+    '华为': ['华为', '华子', 'HW', 'huawei'],
+    '比亚迪': ['比亚迪', '比亚迪', 'BYD', 'byd'],
+    '中兴': ['中兴', 'ZTE', 'zte'],
+    '腾讯': ['腾讯', '鹅厂', 'TX'],
+    '阿里': ['阿里', '阿里巴巴', '巴巴', 'ALI'],
+    '字节': ['字节', '字节跳动', '字节跃动'],
+    '小米': ['小米', '米厂', 'MI'],
+  };
 
-  // Filtered companies computed
-  const filteredCompanies = useMemo(() => {
-    return COMP_MOCK_LIST.filter(c => {
-      // 1. Text Search query matching name, representative, code, or tags
-      const normQuery = searchQuery.toLowerCase().trim();
-      const matchText = normQuery === '' || 
-        c.name.toLowerCase().includes(normQuery) ||
-        c.representative.toLowerCase().includes(normQuery) ||
-        c.creditCode.toLowerCase().includes(normQuery) ||
-        c.tags.coreDivision.some(t => t.toLowerCase().includes(normQuery)) ||
-        c.tags.businessPreference.some(t => t.toLowerCase().includes(normQuery));
+  // 行业关键词映射
+  const INDUSTRY_KEYWORDS: Record<string, string[]> = {
+    '汽车': ['汽车', '车辆', '车载', '新能源车', '电动车', '汽车电子'],
+    '半导体': ['半导体', '芯片', '集成电路', 'IC', '晶圆'],
+    '通信': ['通信', '5G', '6G', '基站', '网络'],
+    '软件': ['软件', '互联网', 'APP', '应用', '平台'],
+    '航空': ['航空', '航天', '低空', '无人机', '飞行器'],
+    '医疗': ['医疗', '医药', '健康', '生物', '医疗器械'],
+  };
 
-      // 2. Industry filter
-      const matchIndustry = selectedIndustry === 'All' || c.industry === selectedIndustry;
+  // 自然语言智能解析
+  const parseNaturalLanguageQuery = useMemo(() => {
+    if (!searchQuery.trim()) return [];
 
-      // 3. Partnership Level filter
-      const matchPartnership = selectedPartnership === 'All' || 
-        c.partnershipLevel.includes(selectedPartnership);
+    const query = searchQuery.toLowerCase();
+    const conditions: any[] = [];
 
-      // 4. Region filter matching visit record or address address
-      const matchRegion = selectedRegion === 'All' || 
-        c.address.includes(selectedRegion) || 
-        c.tags.otherTags.some(t => t.includes(selectedRegion));
-
-      // 5. AI Score Range filter
-      let matchAiScore = true;
-      if (selectedAiScoreRange === 'high') {
-        matchAiScore = c.aiScore >= 90;
-      } else if (selectedAiScoreRange === 'medium') {
-        matchAiScore = c.aiScore >= 80 && c.aiScore < 90;
-      } else if (selectedAiScoreRange === 'low') {
-        matchAiScore = c.aiScore < 80;
+    // 1. 检测企业别名（模糊匹配）
+    for (const [company, aliases] of Object.entries(COMPANY_ALIASES)) {
+      if (aliases.some(alias => query.includes(alias.toLowerCase()))) {
+        conditions.push({ type: 'company', label: '企业名称', value: company, color: 'rose' });
+        break;
       }
+    }
 
-      return matchText && matchIndustry && matchPartnership && matchRegion && matchAiScore;
+    // 2. 检测行业关键词
+    for (const [industry, keywords] of Object.entries(INDUSTRY_KEYWORDS)) {
+      if (keywords.some(kw => query.includes(kw.toLowerCase()))) {
+        conditions.push({ type: 'industry', label: '行业类型', value: industry, color: 'purple' });
+        break;
+      }
+    }
+
+    // 3. 检测地区关键词
+    const regionPatterns = [
+      { keywords: ['华南', '广东', '广州', '深圳', '东莞'], value: '华南地区' },
+      { keywords: ['华北', '北京', '天津', '河北'], value: '华北地区' },
+      { keywords: ['华东', '上海', '江苏', '浙江', '安徽'], value: '华东地区' },
+      { keywords: ['华中', '湖北', '湖南', '河南'], value: '华中地区' },
+      { keywords: ['西北', '陕西', '西安'], value: '西北地区' },
+      { keywords: ['西南', '四川', '重庆', '成都'], value: '西南地区' },
+    ];
+
+    for (const pattern of regionPatterns) {
+      if (pattern.keywords.some(kw => query.includes(kw))) {
+        conditions.push({ type: 'region', label: '地区', value: pattern.value, color: 'orange' });
+        break;
+      }
+    }
+
+    // 4. 检测金额关键词（支持模糊表述）
+    if (query.includes('千万') || query.includes('1000万') || query.includes('大客户') || query.includes('高价值')) {
+      conditions.push({ type: 'amount', label: '合作金额', value: '1000万以上', color: 'amber' });
+    } else if (query.includes('亿') || query.includes('巨额') || query.includes('战略')) {
+      conditions.push({ type: 'amount', label: '合作金额', value: '5000万以上', color: 'amber' });
+    } else if (query.includes('500万') || query.includes('中等')) {
+      conditions.push({ type: 'amount', label: '合作金额', value: '500-1000万', color: 'amber' });
+    }
+
+    // 5. 检测合作层级（语义匹配）
+    if (query.includes('战略') || query.includes('核心') || query.includes('重要')) {
+      conditions.push({ type: 'partnership', label: '合作层级', value: '战略级', color: 'indigo' });
+    } else if (query.includes('供应') || query.includes('供应商')) {
+      conditions.push({ type: 'partnership', label: '合作层级', value: '核心供应商', color: 'indigo' });
+    }
+
+    // 6. 检测增长类型（语义匹配）
+    if (query.includes('高增长') || query.includes('快速增长') || query.includes('爆发') || query.includes('潜力')) {
+      conditions.push({ type: 'growth', label: '增长类别', value: '高增长类', color: 'emerald' });
+    } else if (query.includes('稳健') || query.includes('稳定') || query.includes('成熟') || query.includes('持续')) {
+      conditions.push({ type: 'growth', label: '增长类别', value: '稳健型', color: 'emerald' });
+    }
+
+    // 7. 检测风险等级（语义匹配）
+    if (query.includes('低风险') || query.includes('安全') || query.includes('可靠')) {
+      conditions.push({ type: 'risk', label: '风险指数', value: '低风险', color: 'teal' });
+    }
+
+    // 8. 检测企业标签（语义匹配）
+    if (query.includes('上市') || query.includes('IPO')) {
+      conditions.push({ type: 'tag', label: '企业标签', value: '上市企业', color: 'cyan' });
+    }
+    if (query.includes('高新') || query.includes('科技') || query.includes('技术')) {
+      conditions.push({ type: 'tag', label: '企业标签', value: '高新技术企业', color: 'cyan' });
+    }
+    if (query.includes('百强') || query.includes('top') || query.includes('龙头')) {
+      conditions.push({ type: 'tag', label: '企业标签', value: '行业龙头企业', color: 'cyan' });
+    }
+
+    // 9. 检测时间维度
+    if (query.includes('2024') || query.includes('今年') || query.includes('本年') || query.includes('当年')) {
+      conditions.push({ type: 'time', label: '合作时间', value: '2024年活跃', color: 'blue' });
+    } else if (query.includes('2023') || query.includes('去年') || query.includes('上年')) {
+      conditions.push({ type: 'time', label: '合作时间', value: '2023年合作', color: 'blue' });
+    }
+
+    // 10. 检测业务类型
+    const businessPatterns = [
+      { keywords: ['失效分析', '失效', '筛选'], value: '失效分析' },
+      { keywords: ['计量', '校准'], value: '计量校准' },
+      { keywords: ['软件评测', '评测', '软件安全'], value: '软件评测' },
+      { keywords: ['环境试验', '可靠性', '环境'], value: '环境试验' },
+      { keywords: ['认证', '资质', '体系'], value: '认证评估' },
+    ];
+
+    for (const pattern of businessPatterns) {
+      if (pattern.keywords.some(kw => query.includes(kw))) {
+        conditions.push({ type: 'business', label: '业务类型', value: pattern.value, color: 'green' });
+        break;
+      }
+    }
+
+    return conditions;
+  }, [searchQuery]);
+
+  // 智能解析用户输入，提取多个搜索条件（保留原有逻辑作为备用）
+  const parseSearchQuery = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+
+    const query = searchQuery.toLowerCase();
+    const conditions: any[] = [];
+
+    // 解析合作时间段
+    if (query.includes('2023') || query.includes('2024') || query.includes('近两年') || query.includes('近一年') || query.includes('本年度')) {
+      if (query.includes('2023')) conditions.push({ type: 'time', label: '合作时间', value: '2023年', color: 'blue' });
+      else if (query.includes('2024')) conditions.push({ type: 'time', label: '合作时间', value: '2024年', color: 'blue' });
+      else if (query.includes('近两年')) conditions.push({ type: 'time', label: '合作时间', value: '近两年', color: 'blue' });
+      else if (query.includes('近一年')) conditions.push({ type: 'time', label: '合作时间', value: '近一年', color: 'blue' });
+      else if (query.includes('本年度')) conditions.push({ type: 'time', label: '合作时间', value: '2024年', color: 'blue' });
+    }
+
+    // 解析主办部门
+    const departments = [
+      { keywords: ['元器件检测所', '检测所', '元器件所'], value: '元器件检测所' },
+      { keywords: ['低空产业', '低空部', '低空经济'], value: '低空产业部' },
+      { keywords: ['技推处', '技术推广', '创新成果'], value: '技推处' },
+      { keywords: ['软件评测', '软件部', '信息安全'], value: '软件评测中心' },
+      { keywords: ['可靠性试验', '试验室', '可靠性'], value: '可靠性试验室' },
+      { keywords: ['计量校准', '计量所', '计量'], value: '计量校准所' },
+      { keywords: ['信息管理', '信息处', '大数据'], value: '信息管理处' }
+    ];
+
+    departments.forEach(dept => {
+      if (dept.keywords.some(kw => query.includes(kw))) {
+        conditions.push({ type: 'department', label: '主办部门', value: dept.value, color: 'purple' });
+      }
     });
-  }, [searchQuery, selectedIndustry, selectedPartnership, selectedRegion, selectedAiScoreRange]);
+
+    // 解析业务类型
+    const businessTypes = [
+      { keywords: ['失效分析', '筛选', '测试', '元器件'], value: '失效分析' },
+      { keywords: ['计量校准', '校准', '计量'], value: '计量校准' },
+      { keywords: ['软件评测', '评测', '软件安全'], value: '软件评测' },
+      { keywords: ['环境试验', '可靠性', '环境应力'], value: '环境试验' },
+      { keywords: ['产品开发', '研发', '技术开发'], value: '产品开发' },
+      { keywords: ['认证评估', '认证', '资质认证'], value: '认证评估' },
+      { keywords: ['tsq', '培训', '人才'], value: 'TSQ培训' }
+    ];
+
+    businessTypes.forEach(biz => {
+      if (biz.keywords.some(kw => query.includes(kw))) {
+        conditions.push({ type: 'business', label: '业务类型', value: biz.value, color: 'green' });
+      }
+    });
+
+    // 解析合作金额
+    if (query.includes('5000万以上') || query.includes('5000万') || query.includes('高价值') || query.includes('大客户')) {
+      conditions.push({ type: 'amount', label: '合作金额', value: '5000万以上', color: 'amber' });
+    } else if (query.includes('1000-5000万') || query.includes('1000万') || query.includes('3000万')) {
+      conditions.push({ type: 'amount', label: '合作金额', value: '1000-5000万', color: 'amber' });
+    } else if (query.includes('500-1000万') || query.includes('500万') || query.includes('中价值')) {
+      conditions.push({ type: 'amount', label: '合作金额', value: '500-1000万', color: 'amber' });
+    } else if (query.includes('100-500万') || query.includes('100万') || query.includes('小客户')) {
+      conditions.push({ type: 'amount', label: '合作金额', value: '100-500万', color: 'amber' });
+    }
+
+    // 解析合作层级
+    if (query.includes('战略级') || query.includes('战略合作伙伴')) {
+      conditions.push({ type: 'partnership', label: '合作层级', value: '战略级合作伙伴', color: 'indigo' });
+    } else if (query.includes('核心供应商') || query.includes('核心') || query.includes('供应商')) {
+      conditions.push({ type: 'partnership', label: '合作层级', value: '核心供应商', color: 'indigo' });
+    } else if (query.includes('意向重点') || query.includes('意向') || query.includes('开发客户')) {
+      conditions.push({ type: 'partnership', label: '合作层级', value: '意向重点开发客户', color: 'indigo' });
+    } else if (query.includes('长期合作') || query.includes('稳定合作')) {
+      conditions.push({ type: 'partnership', label: '合作层级', value: '长期合作企业', color: 'indigo' });
+    }
+
+    // 解析增长类别
+    if (query.includes('高增长') || query.includes('快速增长')) {
+      conditions.push({ type: 'growth', label: '增长类别', value: '高增长类', color: 'emerald' });
+    } else if (query.includes('稳健') || query.includes('成熟') || query.includes('稳定')) {
+      conditions.push({ type: 'growth', label: '增长类别', value: '稳健型', color: 'emerald' });
+    } else if (query.includes('初创') || query.includes('潜力') || query.includes('新兴')) {
+      conditions.push({ type: 'growth', label: '增长类别', value: '初创潜力', color: 'emerald' });
+    }
+
+    // 解析评分
+    if (query.includes('90分以上') || query.includes('高质量') || query.includes('高潜')) {
+      conditions.push({ type: 'score', label: 'AI评分', value: '90分以上', color: 'rose' });
+    } else if (query.includes('80-90分') || query.includes('中高')) {
+      conditions.push({ type: 'score', label: 'AI评分', value: '80-90分', color: 'rose' });
+    } else if (query.includes('95分以上') || query.includes('高合规')) {
+      conditions.push({ type: 'compliance', label: '合规评分', value: '95分以上', color: 'teal' });
+    }
+
+    // 解析风险
+    if (query.includes('低风险') || query.includes('风险低') || query.includes('稳定')) {
+      conditions.push({ type: 'risk', label: '风险指数', value: '低风险', color: 'teal' });
+    } else if (query.includes('10以下') || query.includes('风险可控')) {
+      conditions.push({ type: 'risk', label: '风险指数', value: '10以下', color: 'teal' });
+    }
+
+    // 解析地区
+    const regions = [
+      { keywords: ['华南', '深圳', '广州', '广东'], value: '华南地区' },
+      { keywords: ['华北', '北京', '天津'], value: '华北地区' },
+      { keywords: ['华东', '上海', '江苏', '浙江'], value: '华东地区' },
+      { keywords: ['华中', '湖北', '湖南'], value: '华中地区' },
+      { keywords: ['西北', '西安'], value: '西北地区' }
+    ];
+
+    regions.forEach(region => {
+      if (region.keywords.some(kw => query.includes(kw))) {
+        conditions.push({ type: 'region', label: '地区', value: region.value, color: 'orange' });
+      }
+    });
+
+    // 解析企业标签
+    if (query.includes('百强') || query.includes('top') || query.includes('最大')) {
+      conditions.push({ type: 'tag', label: '企业标签', value: '中国百强企业', color: 'cyan' });
+    }
+    if (query.includes('上市') || query.includes('ipo')) {
+      conditions.push({ type: 'tag', label: '企业标签', value: '上市企业', color: 'cyan' });
+    }
+    if (query.includes('高新') || query.includes('高企') || query.includes('科技')) {
+      conditions.push({ type: 'tag', label: '企业标签', value: '高新技术企业', color: 'cyan' });
+    }
+    if (query.includes('独角兽') || query.includes('创业')) {
+      conditions.push({ type: 'tag', label: '企业标签', value: '独角兽企业', color: 'cyan' });
+    }
+    if (query.includes('龙头') || query.includes('领军')) {
+      conditions.push({ type: 'tag', label: '企业标签', value: '行业龙头企业', color: 'cyan' });
+    }
+    if (query.includes('央企') || query.includes('国企')) {
+      conditions.push({ type: 'tag', label: '企业标签', value: '央企国企', color: 'cyan' });
+    }
+
+    return conditions;
+  }, [searchQuery]);
+
+  // 根据解析的条件过滤企业
+  const filteredCompanies = useMemo(() => {
+    // 如果正在搜索中，返回空数组
+    if (isSearching) return [];
+    // 如果没有解析条件，返回所有企业
+    if (parsedConditions.length === 0) return COMP_MOCK_LIST;
+
+    return COMP_MOCK_LIST.filter(company => {
+      return parsedConditions.every(condition => {
+        switch (condition.type) {
+          case 'company':
+            // 企业名称过滤（支持别名匹配）
+            return company.name.includes(condition.value) ||
+                   company.name.toLowerCase().includes(condition.value.toLowerCase());
+
+          case 'industry':
+            // 行业类型过滤
+            return company.industry.includes(condition.value) ||
+                   company.industry.toLowerCase().includes(condition.value.toLowerCase());
+
+          case 'time':
+            // 时间范围过滤：检查企业是否有相关年份的业务数据
+            return company.metrics.some(m =>
+              m.year.includes('2023') || m.year.includes('2024')
+            );
+
+          case 'department':
+            // 部门过滤：检查企业是否与该部门有业务往来
+            return company.deptContributions.some(dept =>
+              dept.name.includes(condition.value) ||
+              condition.value.includes(dept.name.slice(0, 4))
+            );
+
+          case 'business':
+            // 业务类型过滤：检查企业标签中的业务偏好
+            return company.tags.businessPreference.some(pref =>
+              pref.includes(condition.value) ||
+              pref.includes(condition.value.slice(0, 4)) ||
+              condition.value.includes(pref.slice(0, 4))
+            );
+
+          case 'amount':
+            // 金额范围过滤
+            const latestYear = company.metrics[company.metrics.length - 1];
+            const totalAmount = latestYear
+              ? Object.values(latestYear).slice(1).reduce((a, b) => (a as number) + (b as number), 0) as number
+              : 0;
+
+            if (condition.value === '5000万以上') return totalAmount >= 5000;
+            if (condition.value === '1000-5000万') return totalAmount >= 1000 && totalAmount < 5000;
+            if (condition.value === '500-1000万') return totalAmount >= 500 && totalAmount < 1000;
+            if (condition.value === '100-500万') return totalAmount > 0 && totalAmount < 500;
+            return true;
+
+          case 'partnership':
+            // 合作层级过滤
+            return company.partnershipLevel.includes(condition.value.replace('合作伙伴', '').replace('企业', ''));
+
+          case 'growth':
+            // 增长类别过滤
+            if (condition.value === '高增长类') return company.growthCategory === '高增长类';
+            if (condition.value === '稳健型') return company.growthCategory === '稳健型';
+            if (condition.value === '初创潜力') return company.growthCategory === '初创潜力';
+            return true;
+
+          case 'score':
+            // AI评分过滤
+            if (condition.value === '90分以上') return company.aiScore >= 90;
+            if (condition.value === '80-90分') return company.aiScore >= 80 && company.aiScore < 90;
+            return true;
+
+          case 'compliance':
+            // 合规评分过滤
+            if (condition.value === '95分以上') return company.complianceRating >= 95;
+            return true;
+
+          case 'risk':
+            // 风险指数过滤
+            if (condition.value === '低风险') return company.riskIndex < 10;
+            if (condition.value === '10以下') return company.riskIndex < 10;
+            return true;
+
+          case 'region':
+            // 地区过滤
+            return company.address.includes(condition.value.replace('地区', '')) ||
+                   company.tags.otherTags.some(tag => tag.includes(condition.value.replace('地区', '')));
+
+          case 'tag':
+            // 标签过滤
+            if (condition.value === '中国百强企业') {
+              return company.tags.coreDivision.some(tag => tag.includes('百强'));
+            }
+            if (condition.value === '上市企业') {
+              return company.type.includes('上市');
+            }
+            if (condition.value === '高新技术企业') {
+              return company.tags.coreDivision.some(tag => tag.includes('高新') || tag.includes('科技'));
+            }
+            return true;
+
+          default:
+            return true;
+        }
+      });
+    });
+  }, [parsedConditions]);
+
+  // 生成搜索建议
+  const generateSuggestions = (input: string) => {
+    if (input.length < 1) return [];
+
+    const suggestions: string[] = [];
+
+    // 添加模板标签建议
+    SEARCH_TEMPLATES.forEach(template => {
+      template.tags.forEach(tag => {
+        if (input.length >= 1 && (tag.includes(input) || input.length >= 2)) {
+          suggestions.push(tag);
+        }
+      });
+    });
+
+    // 添加企业名称建议
+    const companyMatches = COMP_MOCK_LIST.filter(c =>
+      c.name.toLowerCase().includes(input.toLowerCase()) ||
+      c.representative.toLowerCase().includes(input.toLowerCase())
+    );
+
+    companyMatches.slice(0, 3).forEach(c => {
+      suggestions.push(c.name);
+    });
+
+    return [...new Set(suggestions)].slice(0, 8);
+  };
+
+  const handleInputChange = (value: string) => {
+    setSearchQuery(value);
+    if (value.length >= 1) {
+      const suggestions = generateSuggestions(value);
+      setSearchSuggestions(suggestions);
+    } else {
+      setSearchSuggestions([]);
+    }
+    setParsedConditions(parseSearchQuery);
+  };
 
   const toggleCompareId = (id: string) => {
     if (compareIds.includes(id)) {
       setCompareIds(prev => prev.filter(cId => cId !== id));
     } else {
       if (compareIds.length >= 3) {
-        alert('为了多主体并列排版美观，单次对比最大支持 3 家主体');
+        alert('最多支持对比3家企业');
         return;
       }
       setCompareIds(prev => [...prev, id]);
     }
   };
 
-  const handleClearFilters = () => {
+  const handleClearSearch = () => {
     setSearchQuery('');
-    setSelectedIndustry('All');
-    setSelectedPartnership('All');
-    setSelectedRegion('All');
-    setSelectedAiScoreRange('All');
+    setSearchSuggestions([]);
+    setParsedConditions([]);
   };
+
+
+  const handleSuggestionClick = (suggestion: string) => {
+    setSearchQuery(suggestion);
+    setSearchSuggestions([]);
+    setParsedConditions(parseSearchQuery);
+  };
+
+  const handleCombinationClick = (keywords: string) => {
+    setSearchQuery(keywords);
+    setSearchSuggestions([]);
+    setParsedConditions(parseSearchQuery);
+  };
+
+  const handleTagClick = (tagText: string) => {
+    // 追加标签文字到输入框，用空格分隔
+    const newQuery = searchQuery.trim() ? `${searchQuery} ${tagText}` : tagText;
+    setSearchQuery(newQuery);
+    setSearchSuggestions([]);
+    setParsedConditions(parseSearchQuery);
+  };
+
+  const handleSearch = () => {
+    if (!searchQuery.trim()) return;
+    setIsSearching(true);
+
+    // 使用自然语言智能解析
+    setTimeout(() => {
+      setParsedConditions(parseNaturalLanguageQuery);
+      setIsSearching(false);
+    }, 1500);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
+  const hasActiveSearch = parsedConditions.length > 0;
+
+  if (comparisonActive) {
+    return (
+      <div className="space-y-6">
+        {/* Comparison Header */}
+        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setComparisonActive(false)}
+              className="p-2 rounded-full hover:bg-slate-100 text-slate-500 transition"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <div>
+              <h3 className="font-semibold text-slate-900 text-lg">企业对比分析</h3>
+              <p className="text-xs text-slate-400">已选择 {compareIds.length} 家企业进行对比</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Comparison Results */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {COMP_MOCK_LIST.filter(c => compareIds.includes(c.id)).map((comp) => {
+            const latestMetrics = comp.metrics[comp.metrics.length - 1];
+            const totalAmount = latestMetrics
+              ? Object.values(latestMetrics).slice(1).reduce((a, b) => (a as number) + (b as number), 0) as number
+              : 0;
+
+            return (
+              <div key={comp.id} className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm space-y-4">
+                {/* Company Header */}
+                <div className="flex items-start gap-3">
+                  <img
+                    src={comp.logo}
+                    alt={comp.name}
+                    className="h-12 w-12 rounded-lg border border-slate-200 object-contain p-1 bg-white"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-slate-900 text-sm truncate">{comp.name}</h4>
+                    <p className="text-[10px] text-slate-400">{comp.industry}</p>
+                  </div>
+                </div>
+
+                {/* Key Metrics */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="text-center">
+                    <div className="text-[10px] text-slate-400">AI评分</div>
+                    <div className="text-xl font-bold text-indigo-600">{comp.aiScore}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-[10px] text-slate-400">合规</div>
+                    <div className="text-xl font-bold text-emerald-600">{comp.complianceRating}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-[10px] text-slate-400">合作额</div>
+                    <div className="text-sm font-bold text-slate-700">{(totalAmount / 100).toFixed(1)}亿</div>
+                  </div>
+                </div>
+
+                {/* Details */}
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">法人代表:</span>
+                    <span className="font-medium text-slate-700">{comp.representative}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">注册资本:</span>
+                    <span className="font-medium text-slate-700">{comp.registeredCapital}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">风险指数:</span>
+                    <span className={`font-bold ${
+                      comp.riskIndex > 15 ? 'text-rose-600' : 'text-emerald-600'
+                    }`}>{comp.riskIndex}</span>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="pt-2 border-t border-slate-100">
+                  <button
+                    onClick={() => onNavigateToCompany(comp.id)}
+                    className="w-full text-center text-xs bg-indigo-600 text-white font-medium py-2 rounded-lg hover:bg-indigo-700 transition"
+                  >
+                    查看完整画像
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      
-      {/* Search Header Banner */}
-      <div className="border-b border-slate-100 pb-5">
+      {/* Page Header */}
+      <div className="border-b border-slate-100 pb-6">
         <h2 className="font-display text-2xl font-semibold tracking-tight text-slate-900">
-          多维度指标筛选 · 企业级对比对标仓
+          企业智能多维度搜索
         </h2>
-        <p className="mt-1 text-sm text-slate-500 font-sans">
-          通过多维度核心指标精准筛选高潜及已签大客户，支持多企业资质、财务表现、信任评分、主协技术部室在手合同金额的横向对标分析
+        <p className="mt-1 text-sm text-slate-500">
+          支持多条件组合搜索，快速精准定位目标企业
         </p>
       </div>
 
-      {!comparisonActive ? (
-        <>
-          {/* Section: Filtering Controls Grid */}
-          <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-xs space-y-4">
-            
-            {/* Row 1 - Search Input with Clear Button */}
-            <div className="flex flex-col md:flex-row gap-3">
-              <div className="relative flex-1">
-                <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
-                <input 
-                  type="text"
-                  placeholder="搜索企业全称、主要法人表、统一社会信用代号、合作偏好关键词..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-xs text-slate-700 font-sans"
-                />
-                {searchQuery !== '' && (
-                  <button 
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600"
-                  >
-                    <X className="h-4.5 w-4.5" />
-                  </button>
-                )}
-              </div>
+      {/* Search Input Section */}
+      <div className="bg-white rounded-xl p-6 border border-slate-200">
+        <div className="mb-4">
+          <h3 className="text-sm text-slate-900">自然语言智能搜索：</h3>
+          <p className="text-xs text-slate-500 mt-1">
+            支持语义搜索，AI自动拆解筛选条件。支持简称、别名自动匹配
+          </p>
+        </div>
 
-              <div className="flex gap-2">
-                <button 
-                  onClick={handleClearFilters}
-                  className="px-3 py-2 text-xs font-semibold text-slate-500 border border-slate-200 rounded-lg hover:bg-slate-100/50 hover:text-slate-700 transition"
-                >
-                  重置筛选条件
-                </button>
-                <button
-                  disabled={compareIds.length < 2}
-                  onClick={() => setComparisonActive(true)}
-                  className={`px-4 py-2 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition ${
-                    compareIds.length >= 2 
-                      ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm'
-                      : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
-                  }`}
-                >
-                  <ArrowLeftRight className="h-3.5 w-3.5" />
-                  开始对标 analysis ({compareIds.length}家)
-                </button>
-              </div>
-            </div>
-
-            {/* Row 2 - Dropdown Filters Panels */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pt-2">
-              {/* Filter 1: Industry */}
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">所属实体行业</label>
-                <select
-                  value={selectedIndustry}
-                  onChange={(e) => setSelectedIndustry(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-md py-1.5 px-2.5 text-xs text-slate-700 font-medium"
-                >
-                  <option value="All">全部行业目录</option>
-                  {industries.filter(ind => ind !== 'All').map((ind, i) => (
-                    <option key={i} value={ind}>{ind}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Filter 2: Partnership Level */}
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">赛宝合作层级</label>
-                <select
-                  value={selectedPartnership}
-                  onChange={(e) => setSelectedPartnership(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-md py-1.5 px-2.5 text-xs text-slate-700 font-medium"
-                >
-                  <option value="All">全部合作关系</option>
-                  <option value="战略级">战略级合作伙伴</option>
-                  <option value="核心供应商">核心供应商代表</option>
-                  <option value="意向">意向重点开发客户</option>
-                </select>
-              </div>
-
-              {/* Filter 3: Region Geography */}
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">地理大区覆盖</label>
-                <select
-                  value={selectedRegion}
-                  onChange={(e) => setSelectedRegion(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-md py-1.5 px-2.5 text-xs text-slate-700 font-medium"
-                >
-                  <option value="All">全部区域分布</option>
-                  <option value="深圳">华南地区（深圳/广州）</option>
-                  <option value="北京">华北地区（北京）</option>
-                </select>
-              </div>
-
-              {/* Filter 4: AI Intelligent score */}
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">AI 质量水平判定</label>
-                <select
-                  value={selectedAiScoreRange}
-                  onChange={(e) => setSelectedAiScoreRange(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-md py-1.5 px-2.5 text-xs text-slate-700 font-medium"
-                >
-                  <option value="All">全部质量分数区间</option>
-                  <option value="high">超高高潜级 (&gt;= 90分)</option>
-                  <option value="medium">稳健中坚级 (80-89分)</option>
-                  <option value="low">待考察观察期 (&lt; 80分)</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Section: Results Grid & Tables list */}
-          <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-xs">
-            <div className="flex items-center justify-between border-b border-slate-50 pb-3.5 mb-4">
-              <div>
-                <h3 className="font-semibold text-slate-900 text-sm">
-                  过滤比对检索列表
-                </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  找到符合您筛选条件的合作子机构共 <span className="font-mono text-indigo-600 font-bold">{filteredCompanies.length}</span> 家
-                </p>
-              </div>
-
-              <div className="text-xs text-slate-400 font-sans">
-                勾选左侧选择栏可将其拖入对比池进行对标
-              </div>
-            </div>
-
-            {filteredCompanies.length === 0 ? (
-              <div className="py-12 text-center text-slate-400 text-xs flex flex-col items-center justify-center space-y-2">
-                <SlidersHorizontal className="h-8 w-8 text-slate-350" />
-                <div>未检索到满足当前筛选约束的企业。请调整关键词或清除过滤条件。</div>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-100 text-xs font-medium text-slate-400 uppercase">
-                      <th className="py-2.5 px-3 w-10">对标</th>
-                      <th className="py-2.5 px-3">实体企业全称</th>
-                      <th className="py-2.5 px-3">信用大类特征</th>
-                      <th className="py-2.5 px-3">行业类别</th>
-                      <th className="py-2.5 px-3">法人表</th>
-                      <th className="py-2.5 px-3">AI 质量度</th>
-                      <th className="py-2.5 px-3 text-right">操作</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50 text-xs text-slate-600">
-                    {filteredCompanies.map((comp) => {
-                      const isComparing = compareIds.includes(comp.id);
-                      return (
-                        <tr key={comp.id} className="hover:bg-slate-50/50 transition">
-                          {/* Checkbox selector for comparison */}
-                          <td className="py-3 px-3">
-                            <button
-                              id={`comp-tick-${comp.id}`}
-                              onClick={() => toggleCompareId(comp.id)}
-                              className={`h-4 w-4 rounded border flex items-center justify-center transition-all ${
-                                isComparing 
-                                  ? 'bg-indigo-600 border-indigo-600 text-white' 
-                                  : 'border-slate-300 hover:border-slate-400 bg-white'
-                              }`}
-                            >
-                              {isComparing && <Check className="h-3 w-3 stroke-[3]" />}
-                            </button>
-                          </td>
-
-                          {/* Basic Profile info */}
-                          <td className="py-3 px-3">
-                            <div className="flex items-center gap-2.5">
-                              <img 
-                                src={comp.logo} 
-                                alt={comp.name} 
-                                className="h-7 w-7 rounded-sm border border-slate-100 object-contain p-0.5"
-                                referrerPolicy="no-referrer"
-                              />
-                              <div>
-                                <span 
-                                  onClick={() => onNavigateToCompany(comp.id)} 
-                                  className="font-bold text-slate-800 hover:text-indigo-600 hover:underline cursor-pointer"
-                                >
-                                  {comp.name}
-                                </span>
-                                <div className="text-[10px] text-slate-400">信用号: {comp.creditCode}</div>
-                              </div>
-                            </div>
-                          </td>
-
-                          {/* Partnership Status Badge */}
-                          <td className="py-3 px-3">
-                            <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium leading-4 ${
-                              comp.partnershipLevel.includes('战略') 
-                                ? 'bg-indigo-50 text-indigo-700' 
-                                : 'bg-emerald-50 text-emerald-700'
-                            }`}>
-                              {comp.partnershipLevel}
-                            </span>
-                          </td>
-
-                          {/* Industry */}
-                          <td className="py-3 px-3 font-medium text-slate-700">{comp.industry}</td>
-
-                          {/* Representative */}
-                          <td className="py-3 px-3 font-mono text-slate-500">{comp.representative}</td>
-
-                          {/* AI Quality score */}
-                          <td className="py-3 px-3 font-mono">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-bold text-slate-800">{comp.aiScore}分</span>
-                              <div className="w-8 bg-slate-100 h-1 rounded-full overflow-hidden">
-                                <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${comp.aiScore}%` }} />
-                              </div>
-                            </div>
-                          </td>
-
-                          {/* Navigate to Profile */}
-                          <td className="py-3 px-3 text-right">
-                            <button
-                              id={`trigger-deep-from-list-${comp.id}`}
-                              onClick={() => onNavigateToCompany(comp.id)}
-                              className="text-[11px] font-semibold text-indigo-650 hover:text-indigo-800 hover:underline inline-flex items-center gap-0.5"
-                            >
-                              深层画像
-                              <ChevronRight className="h-3.5 w-3.5" />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </>
-      ) : (
-        /* Section: Side-by-Side Comparison Desk Output */
-        <div className="bg-white rounded-xl p-5 border border-slate-150/60 shadow-md space-y-6 animate-fade-in">
-          
-          {/* Compare Top Back Row controls */}
-          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={() => setComparisonActive(false)}
-                className="p-1 rounded-full hover:bg-slate-100 text-slate-500 transition mr-1"
+        {/* Unified Search Input */}
+        <div className="relative mb-5">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+          <input
+            type="text"
+            placeholder="用自然语言描述搜索需求，如：华南地区汽车行业千万以上高增长客户、华子公司..."
+            value={searchQuery}
+            onChange={(e) => handleInputChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="w-full rounded-lg border border-slate-300 bg-white py-3 pl-12 pr-28 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          />
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
+            {searchQuery && (
+              <button
+                onClick={handleClearSearch}
+                className="p-2 text-slate-400 hover:text-slate-600 transition"
+                title="清除搜索"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
-              <div>
-                <h3 className="font-semibold text-slate-900 text-base">企业多维属性并列对标分析</h3>
-                <p className="text-xs text-slate-400">目前对比的主页有 {compareIds.length} 家核心合作企业</p>
-              </div>
-            </div>
-
-            <button 
-              onClick={() => setComparisonActive(false)}
-              className="text-xs font-semibold text-indigo-600 border border-indigo-100 hover:bg-indigo-50/50 px-3 py-1.5 rounded-lg transition"
+            )}
+            <button
+              onClick={handleSearch}
+              disabled={isSearching || !searchQuery.trim()}
+              className={`px-4 py-1.5 text-xs font-medium rounded-md transition ${
+                isSearching || !searchQuery.trim()
+                  ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                  : 'bg-indigo-600 text-white hover:bg-indigo-700'
+              }`}
             >
-              返回筛选列表
+              {isSearching ? '搜索中...' : '搜索'}
             </button>
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {COMP_MOCK_LIST.filter(c => compareIds.includes(c.id)).map((comp) => {
-              const currentYearTotal = comp.metrics[1] 
-                ? Object.values(comp.metrics[1]).slice(1).reduce((a, b) => (a as number) + (b as number), 0) as number
-                : 0;
-
-              return (
-                <div key={comp.id} className="border border-slate-100 rounded-xl p-5 bg-slate-50/20 shadow-xs space-y-5">
-                  
-                  {/* Top entity header */}
-                  <div className="flex gap-3 items-center border-b border-slate-100/60 pb-3">
-                    <img 
-                      src={comp.logo} 
-                      alt={comp.name} 
-                      className="h-9 w-9 rounded border border-slate-200/50 object-contain p-0.5 bg-white"
-                      referrerPolicy="no-referrer"
-                    />
-                    <div>
-                      <div className="font-bold text-slate-800 text-sm truncate max-w-[170px]" title={comp.name}>
-                        {comp.name}
-                      </div>
-                      <div className="text-[10px] text-slate-400">{comp.type}</div>
-                    </div>
-                  </div>
-
-                  {/* Attribute compares */}
-                  <div className="space-y-3.5 text-xs">
-                    
-                    {/* Dimension 1: Representative */}
-                    <div className="flex justify-between">
-                      <span className="text-slate-400 font-sans">代表法人:</span>
-                      <span className="font-medium text-slate-700">{comp.representative}</span>
-                    </div>
-
-                    {/* Dimension 2: Registered Capital */}
-                    <div className="flex justify-between font-sans">
-                      <span className="text-slate-400">注册资本规模:</span>
-                      <span className="font-mono font-bold text-slate-700">{comp.registeredCapital}</span>
-                    </div>
-
-                    {/* Dimension 3: Establishment Date */}
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">设立时间:</span>
-                      <span className="font-mono text-slate-500">{comp.establishmentDate}</span>
-                    </div>
-
-                    {/* Dimension 4: Social Code */}
-                    <div className="flex justify-between line-clamp-1">
-                      <span className="text-slate-400">社会信用号:</span>
-                      <span className="font-mono text-slate-750 text-[11px] truncate max-w-[120px]">{comp.creditCode}</span>
-                    </div>
-
-                    {/* Dimension 5: Regional */}
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">核心往来省市:</span>
-                      <span className="text-slate-600 font-medium">华南大区 ({comp.address.slice(0, 3)})</span>
-                    </div>
-
-                    {/* Score Compare */}
-                    <div className="border-t border-dashed border-slate-100 pt-3.5 space-y-2.5">
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-slate-500 font-bold">赛宝合规信用分:</span>
-                        <span className="font-mono font-bold text-emerald-600 text-sm">{comp.complianceRating}分</span>
-                      </div>
-                      
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-slate-500 font-bold">AI 质量效能分评:</span>
-                        <span className="font-mono font-bold text-indigo-650 text-sm">{comp.aiScore}分</span>
-                      </div>
-
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-slate-505 font-bold">赛宝年度累计合同额:</span>
-                        <span className="font-mono font-semibold text-slate-800 text-xs">￥{(currentYearTotal/10).toFixed(1)} 千万元</span>
-                      </div>
-                    </div>
-
-                    {/* Department Ratio highlight */}
-                    <div className="border-t border-slate-100 pt-3.5 space-y-2">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">主要合作占比部室:</span>
-                      <div className="space-y-1.5 max-h-24 overflow-y-auto">
-                        {comp.deptContributions.slice(0, 3).map((dept, dIdx) => (
-                          <div key={dIdx} className="flex justify-between text-[10px] text-slate-500">
-                            <span className="truncate max-w-[140px]">{dept.name.slice(0, 9)}...</span>
-                            <span className="font-mono text-slate-700 font-bold">{dept.ratio}%</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                  </div>
-
-                  {/* Navigation footer target */}
-                  <div className="pt-2 border-t border-slate-100">
-                    <button 
-                      onClick={() => onNavigateToCompany(comp.id)}
-                      className="w-full text-center text-xs bg-indigo-600 text-white font-medium py-1.5 rounded-lg hover:bg-indigo-700 transition"
+        {/* 9大维度标签展示 */}
+        <div className="pt-4 border-t border-slate-100">
+          <div className="text-xs font-medium text-slate-700 mb-3">
+            AI 支持以下维度智能识别，点击标签可快速追加：
+          </div>
+          <div className="space-y-2">
+            {SEARCH_TEMPLATES.slice(0, 9).map((template) => (
+              <div key={template.id} className="flex items-start gap-2">
+                <span className="text-xs font-semibold text-indigo-600 min-w-fit">{template.category}:</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {template.tags.map((tag, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleTagClick(tag)}
+                      className="text-[10px] text-slate-600 px-2 py-0.5 bg-slate-50 border border-slate-200 rounded hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 transition cursor-pointer"
                     >
-                      深入查看该厂立体画像
+                      {tag}
                     </button>
-                  </div>
-
+                  ))}
                 </div>
-              );
-            })}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Search Suggestions */}
+        {searchSuggestions.length > 0 && (
+          <div className="mt-4 bg-white rounded-lg border border-slate-200 shadow-lg p-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-[10px] text-slate-400">🔍 搜索建议</div>
+              <button
+                onClick={() => setSearchSuggestions([])}
+                className="text-[10px] text-slate-400 hover:text-slate-600"
+              >
+                关闭
+              </button>
+            </div>
+            <div className="space-y-1">
+              {searchSuggestions.map((suggestion, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => handleSuggestionClick(suggestion)}
+                  className="px-3 py-2 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-900 rounded cursor-pointer transition"
+                >
+                  {suggestion}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Parsed Conditions Display */}
+      {hasActiveSearch && (
+        <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Search className="h-4 w-4 text-indigo-600" />
+              <span className="text-sm font-semibold text-slate-900">
+                搜索结果: <span className="text-indigo-600">{filteredCompanies.length}</span> 家企业
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {compareIds.length > 0 && (
+                <button
+                  onClick={() => setComparisonActive(true)}
+                  className="px-4 py-2 text-xs bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+                >
+                  对比选中 ({compareIds.length})
+                </button>
+              )}
+              <button
+                onClick={handleClearSearch}
+                className="px-4 py-2 text-xs bg-slate-200 text-slate-600 rounded-lg hover:bg-slate-300 transition"
+              >
+                清除搜索
+              </button>
+            </div>
+          </div>
+
+          {/* Search Query */}
+          <div className="mb-3 flex flex-wrap gap-2 items-center">
+            <span className="text-xs text-slate-400">搜索:</span>
+            <span className="px-3 py-1 bg-indigo-50 text-indigo-900 rounded-full text-xs font-medium">
+              "{searchQuery}"
+            </span>
+          </div>
+
+          {/* Parsed Conditions */}
+          <div className="flex flex-wrap gap-2">
+            {parsedConditions.map((condition, idx) => (
+              <div
+                key={idx}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium border flex items-center gap-1.5 ${
+                  condition.type === 'time' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                  condition.type === 'department' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                  condition.type === 'business' ? 'bg-green-50 text-green-700 border-green-200' :
+                  condition.type === 'amount' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                  condition.type === 'partnership' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
+                  condition.type === 'growth' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                  condition.type === 'score' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                  condition.type === 'risk' ? 'bg-teal-50 text-teal-700 border-teal-200' :
+                  condition.type === 'region' ? 'bg-orange-50 text-orange-700 border-orange-200' :
+                  'bg-cyan-50 text-cyan-700 border-cyan-200'
+                }`}
+              >
+                <span>{condition.label}:</span>
+                <span className="font-semibold">{condition.value}</span>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
+      {/* Empty State */}
+      {!hasActiveSearch && (
+        <div className="bg-white rounded-xl p-12 border border-slate-200 text-center">
+          <Search className="h-16 w-16 text-slate-300 mx-auto mb-4" />
+          <p className="text-slate-400 text-lg">请选择搜索提示词模板或输入搜索条件</p>
+          <p className="text-slate-300 text-sm mt-2">支持9大维度多条件组合搜索</p>
+        </div>
+      )}
+
+      {/* Search Results */}
+      {hasActiveSearch && (
+        <>
+          {/* Loading State - Transition Page */}
+          {isSearching && (
+            <div className="bg-white rounded-xl p-16 border border-slate-200 text-center">
+              <div className="flex flex-col items-center justify-center">
+                <div className="relative w-16 h-16 mb-6">
+                  <div className="absolute inset-0 border-4 border-indigo-200 rounded-full"></div>
+                  <div className="absolute inset-0 border-4 border-indigo-600 rounded-full border-t-transparent animate-spin"></div>
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">正在搜索企业数据...</h3>
+                <p className="text-sm text-slate-500">正在匹配搜索条件，请稍候</p>
+              </div>
+            </div>
+          )}
+
+          {/* Search Results */}
+          {!isSearching && filteredCompanies.length === 0 ? (
+            <div className="bg-white rounded-xl p-12 border border-slate-200 text-center">
+              <Search className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+              <p className="text-slate-400 text-sm">未找到符合所有条件的企业</p>
+              <p className="text-slate-300 text-xs mt-1">请尝试减少搜索条件或调整组合方式</p>
+            </div>
+          ) : !isSearching && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+              {filteredCompanies.map((comp) => {
+                const isComparing = compareIds.includes(comp.id);
+                const latestMetrics = comp.metrics[comp.metrics.length - 1];
+                const totalAmount = latestMetrics
+                  ? Object.values(latestMetrics).slice(1).reduce((a, b) => (a as number) + (b as number), 0) as number
+                  : 0;
+
+                return (
+                  <div
+                    key={comp.id}
+                    className="bg-white rounded-xl p-4 border border-slate-200 hover:shadow-lg transition-all"
+                  >
+                    {/* Header with Compare Checkbox */}
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2 flex-1">
+                        <button
+                          onClick={() => toggleCompareId(comp.id)}
+                          className={`h-5 w-5 rounded border flex items-center justify-center transition-all shrink-0 ${
+                            isComparing
+                              ? 'bg-indigo-600 border-indigo-600 text-white'
+                              : 'border-slate-300 hover:border-slate-400 bg-white'
+                          }`}
+                        >
+                          {isComparing && <Check className="h-3 w-3 stroke-[3]" />}
+                        </button>
+                        <img
+                          src={comp.logo}
+                          alt={comp.name}
+                          className="h-10 w-10 rounded-lg border border-slate-200 object-contain p-1 bg-white"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="flex-1 min-w-0 ml-2">
+                          <div
+                            onClick={() => onNavigateToCompany(comp.id)}
+                            className="font-semibold text-slate-900 text-sm truncate hover:text-indigo-600 hover:underline cursor-pointer"
+                          >
+                            {comp.name}
+                          </div>
+                          <p className="text-[10px] text-slate-400 truncate">{comp.industry}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Quick Stats */}
+                    <div className="grid grid-cols-3 gap-2 mb-3">
+                      <div className="text-center bg-slate-50 rounded p-2">
+                        <div className="text-[9px] text-slate-400">AI</div>
+                        <div className="text-sm font-bold text-indigo-600">{comp.aiScore}</div>
+                      </div>
+                      <div className="text-center bg-slate-50 rounded p-2">
+                        <div className="text-[9px] text-slate-400">合规</div>
+                        <div className="text-sm font-bold text-emerald-600">{comp.complianceRating}</div>
+                      </div>
+                      <div className="text-center bg-slate-50 rounded p-2">
+                        <div className="text-[9px] text-slate-400">风险</div>
+                        <div className="text-sm font-bold text-slate-700">{comp.riskIndex}</div>
+                      </div>
+                    </div>
+
+                    {/* Tags */}
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                      <span className={`px-2 py-0.5 text-[10px] font-medium rounded-full ${
+                        comp.partnershipLevel.includes('战略')
+                          ? 'bg-indigo-50 text-indigo-700 border border-indigo-100'
+                          : 'bg-slate-50 text-slate-600 border border-slate-200'
+                      }`}>
+                        {comp.partnershipLevel}
+                      </span>
+                      <span className={`px-2 py-0.5 text-[10px] font-medium rounded-full ${
+                        comp.growthCategory === '高增长类'
+                          ? 'bg-green-50 text-green-700 border border-green-100'
+                          : 'bg-blue-50 text-blue-700 border border-blue-100'
+                      }`}>
+                        {comp.growthCategory}
+                      </span>
+                      {comp.tags.coreDivision.slice(0, 2).map((tag, idx) => (
+                        <span key={idx} className="px-2 py-0.5 text-[10px] rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Key Info */}
+                    <div className="space-y-1.5 text-xs mb-3">
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">法人代表:</span>
+                        <span className="font-medium text-slate-700">{comp.representative}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">合作金额:</span>
+                        <span className="font-medium text-slate-700">¥{(totalAmount / 100).toFixed(1)}亿</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">参保人数:</span>
+                        <span className="font-medium text-slate-700">{comp.insuredEmployees}人</span>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-2 pt-2 border-t border-slate-100">
+                      <button
+                        onClick={() => toggleCompareId(comp.id)}
+                        className={`flex-1 px-3 py-2 text-[11px] font-medium rounded-lg transition ${
+                          isComparing
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        {isComparing ? '已选' : '对比'}
+                      </button>
+                      <button
+                        onClick={() => onNavigateToCompany(comp.id)}
+                        className="flex-1 px-3 py-2 text-[11px] font-medium rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition"
+                      >
+                        查看画像
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

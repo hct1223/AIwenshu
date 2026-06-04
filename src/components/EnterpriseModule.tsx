@@ -6,23 +6,27 @@
 import React, { useState } from 'react';
 import { Company } from '../types';
 import { COMP_MOCK_LIST } from '../data/mockData';
-import { 
-  Building2, 
-  User, 
-  Calendar, 
-  MapPin, 
-  Phone, 
-  Mail, 
-  ShieldCheck, 
-  TrendingUp, 
-  Activity, 
+import {
+  Building2,
+  User,
+  Calendar,
+  MapPin,
+  Phone,
+  Mail,
+  ShieldCheck,
+  TrendingUp,
+  Activity,
   AlertCircle,
   Clock,
   ArrowRight,
   FileText,
   UserCheck,
   CheckCircle,
-  HelpCircle
+  HelpCircle,
+  Sparkles,
+  Lightbulb,
+  Target,
+  Info
 } from 'lucide-react';
 
 interface EnterpriseModuleProps {
@@ -115,13 +119,13 @@ export default function EnterpriseModule({
     <div className="space-y-6">
       
       {/* Module Navigation dropdown and Header wrapper */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-3">
         <div>
           <h2 className="font-display text-2xl font-semibold tracking-tight text-slate-900">
-            企业立体透视画像 · 合同穿透洞察
+            企业画像 · 合同穿透洞察
           </h2>
           <p className="mt-1 text-sm text-slate-500 font-sans">
-            针对单一合作主体进行全生命周期的资质校验、合同在审账目、部室对接往来、主要利益干系人及关键拜访流转回溯
+            全生命周期企业资质校验、合同在审账目、部室对接往来、关键干系人及拜访回溯
           </p>
         </div>
 
@@ -142,19 +146,19 @@ export default function EnterpriseModule({
       </div>
 
       {/* Main Grid Content - Multi layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
         {/* Left Column: Basic Enterprise Profile Card & Tag Systems */}
-        <div className="space-y-6">
-          
-          <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-xs relative">
+        <div className="space-y-4">
+
+          <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-xs relative">
             {/* Background decoration ring */}
             <div className="absolute right-0 top-0 h-24 w-24 bg-indigo-50/20 rounded-full blur-xl pointer-events-none" />
 
             <div className="flex gap-3.5 items-start">
-              <img 
-                src={currentCompany.logo} 
-                alt={currentCompany.name} 
+              <img
+                src={currentCompany.logo}
+                alt={currentCompany.name}
                 className="h-12 w-12 rounded-lg border border-slate-100/80 object-contain p-1 shrink-0"
                 referrerPolicy="no-referrer"
               />
@@ -167,7 +171,7 @@ export default function EnterpriseModule({
             </div>
 
             {/* Registry Info Details block */}
-            <div className="mt-6 space-y-3.5 border-t border-slate-50 pt-4 text-xs">
+            <div className="mt-4 space-y-3 border-t border-slate-50 pt-4 text-xs">
               <div className="flex justify-between items-center">
                 <span className="text-slate-400">信用统一代代号:</span>
                 <span className="font-mono text-slate-700 font-medium">{currentCompany.creditCode}</span>
@@ -200,15 +204,15 @@ export default function EnterpriseModule({
           </div>
 
           {/* Collaborative tag structures */}
-          <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-xs space-y-4">
-            <h4 className="font-semibold text-slate-900 border-b border-slate-50 pb-2.5 text-xs uppercase tracking-wider text-slate-400">
+          <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-xs space-y-3">
+            <h4 className="font-semibold text-slate-900 border-b border-slate-50 pb-2 text-xs uppercase tracking-wider text-slate-400">
               赛宝联合合作画像标签
             </h4>
 
-            <div className="space-y-3.5">
+            <div className="space-y-2">
               <div>
-                <div className="text-[10px] text-slate-400 font-medium mb-1.5">核心大类和渠道状态:</div>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="text-[10px] text-slate-400 font-medium mb-1">核心大类和渠道状态:</div>
+                <div className="flex flex-wrap gap-1">
                   {currentCompany.tags.coreDivision.map((tag, i) => (
                     <span key={i} className="bg-indigo-50/50 text-indigo-700 text-[10px] px-2 py-0.5 rounded border border-indigo-100/30">
                       {tag}
@@ -218,8 +222,8 @@ export default function EnterpriseModule({
               </div>
 
               <div>
-                <div className="text-[10px] text-slate-400 font-medium mb-1.5">业务偏好与在审倾向:</div>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="text-[10px] text-slate-400 font-medium mb-1">业务偏好与在审倾向:</div>
+                <div className="flex flex-wrap gap-1">
                   {currentCompany.tags.businessPreference.map((tag, i) => (
                     <span key={i} className="bg-emerald-50 text-emerald-800 text-[10px] px-2 py-0.5 rounded border border-emerald-100/50">
                       {tag}
@@ -229,8 +233,8 @@ export default function EnterpriseModule({
               </div>
 
               <div>
-                <div className="text-[10px] text-slate-400 font-medium mb-1.5">运营与效能属性:</div>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="text-[10px] text-slate-400 font-medium mb-1">运营与效能属性:</div>
+                <div className="flex flex-wrap gap-1">
                   {currentCompany.tags.otherTags.map((tag, i) => (
                     <span key={i} className="bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5 rounded">
                       {tag}
@@ -244,15 +248,15 @@ export default function EnterpriseModule({
         </div>
 
         {/* Middle Area: Quality Compliance Assessment and Testing comparison charts */}
-        <div className="lg:col-span-2 space-y-6">
-          
+        <div className="lg:col-span-2 space-y-4">
+
           {/* Dashboard metrics block - quality compliance */}
-          <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-xs">
-            <h4 className="font-semibold text-slate-900 text-sm border-b border-slate-50 pb-2.5">
+          <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-xs">
+            <h4 className="font-semibold text-slate-900 text-sm border-b border-slate-50 pb-2">
               数智安全与履约信任指标评测
             </h4>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
               {/* Score card 1: AI rating */}
               <div className="rounded-lg p-3 bg-slate-50/50 border border-slate-100 text-center flex flex-col justify-between">
                 <span className="text-[11px] font-medium text-slate-400">赛宝 AI 智能合规信誉度</span>
@@ -291,13 +295,95 @@ export default function EnterpriseModule({
             </div>
 
             {/* General cooperation brief */}
-            <div className="mt-4 p-3 rounded-lg bg-indigo-50/30 border border-indigo-150/50 text-xs leading-relaxed text-slate-600">
+            <div className="mt-3 p-2.5 rounded-lg bg-indigo-50/30 border border-indigo-150/50 text-xs leading-relaxed text-slate-600">
               <span className="font-bold text-indigo-900">赛宝实验室往来评议:</span> {currentCompany.saibaoCooperationSummary}
             </div>
           </div>
 
+          {/* AI Intelligent Analysis Module */}
+          <div className="bg-gradient-to-br from-indigo-50 to-white rounded-xl p-5 border border-indigo-100 shadow-xs">
+            <div className="flex items-center gap-1.5 border-b border-indigo-100/50 pb-3 mb-4">
+              <Sparkles className="h-4 w-4 text-indigo-600" />
+              <h4 className="font-semibold text-slate-900 text-sm">AI 智能分析与建议</h4>
+            </div>
+
+            {/* Overall Situation Analysis */}
+            <div className="mb-4">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Target className="h-3.5 w-3.5 text-indigo-600" />
+                <h5 className="text-xs font-bold text-slate-800">整体情况分析</h5>
+              </div>
+              <div className="bg-white rounded-lg p-3 border border-slate-100 text-[11px] text-slate-600 leading-relaxed space-y-2">
+                <p><span className="font-semibold text-slate-800">合作规模：</span>{currentCompany.name}当前与赛宝实验室累计合作金额达<span className="font-mono font-bold text-indigo-600">{totalContractAmount}万元</span>，在研/履行中合约<span className="font-mono font-bold text-emerald-600">{activeContractsCount}份</span>，属于{currentCompany.partnershipLevel}合作伙伴。</p>
+                <p><span className="font-semibold text-slate-800">信用评级：</span>赛宝AI智能合规信誉度评分为<span className="font-mono font-bold text-indigo-600">{currentCompany.aiScore}分</span>，财务清账及合规表现为<span className="font-mono font-bold text-emerald-600">{currentCompany.complianceRating}%</span>，整体信用状况{currentCompany.aiScore >= 85 ? '优秀' : currentCompany.aiScore >= 70 ? '良好' : '一般'}。</p>
+                <p><span className="font-semibold text-slate-800">风险指标：</span>近期关联舆情及业务波动风险指数为<span className="font-mono font-bold text-slate-700">{currentCompany.riskIndex}%</span>，{currentCompany.riskIndex > 15 ? '触发中等关注，需要密切监控' : '风险指标极低，合作安全性较高'}。</p>
+                <p><span className="font-semibold text-slate-800">增长潜力：</span>企业属于{currentCompany.growthCategory}，{currentCompany.tags.coreDivision.join('、')}标签显示其在行业内具备较强{currentCompany.tags.businessPreference[0] || '技术'}优势，建议作为{currentCompany.growthCategory === '高增长类' ? '重点拓展' : '稳定维护'}对象。</p>
+              </div>
+            </div>
+
+            {/* AI Recommendations */}
+            <div>
+              <div className="flex items-center gap-1.5 mb-2">
+                <Lightbulb className="h-3.5 w-3.5 text-amber-600" />
+                <h5 className="text-xs font-bold text-slate-800">智能化建议</h5>
+              </div>
+              <div className="space-y-2">
+                <div className="bg-white rounded-lg p-3 border border-slate-100">
+                  <div className="flex items-start gap-2">
+                    <div className="bg-indigo-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0">
+                      1
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-bold text-slate-800 text-xs mb-1">深化合作关系</div>
+                      <p className="text-slate-500 text-[11px] leading-relaxed">
+                        基于当前{activeContractsCount}份履行中合约，建议重点关注{currentCompany.deptContributions[0]?.name || '元器件检测所'}的业务拓展，利用企业在{currentCompany.tags.businessPreference[0] || '技术'}领域的优势，制定专项合作方案。
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-lg p-3 border border-slate-100">
+                  <div className="flex items-start gap-2">
+                    <div className="bg-indigo-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0">
+                      2
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-bold text-slate-800 text-xs mb-1">风险监控与预警</div>
+                      <p className="text-slate-500 text-[11px] leading-relaxed">
+                        当前风险指数为{currentCompany.riskIndex}%，{currentCompany.riskIndex > 15 ? '建议建立季度回访机制，重点关注财务清账和合同履约情况' : '风险较低，建议维持常规客户关系管理'}。
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-lg p-3 border border-slate-100">
+                  <div className="flex items-start gap-2">
+                    <div className="bg-indigo-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0">
+                      3
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-bold text-slate-800 text-xs mb-1">业务拓展机会</div>
+                      <p className="text-slate-500 text-[11px] leading-relaxed">
+                        企业在{currentCompany.industry}领域表现突出，结合赛宝实验室在计量校准、软件评测等方面的优势，可探索{currentCompany.tags.businessPreference[1] || '新兴业务'}合作机会。
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-100">
+                  <div className="flex items-start gap-2">
+                    <Info className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-bold text-indigo-900 text-xs mb-1">关键提醒</div>
+                      <p className="text-indigo-700 text-[11px] leading-relaxed">
+                        建议在{new Date().getMonth() + 1}月底前安排一次客户回访，重点跟进{currentCompany.contacts[0]?.name || '相关负责人'}关于新业务合作意向的沟通，同时关注行业政策变化对企业需求的影响。
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Comparison charts between last year and current year for active company */}
-          <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-xs">
+          <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-xs">
             <div className="flex items-center justify-between border-b border-slate-50 pb-2.5 mb-4">
               <h4 className="font-semibold text-slate-900 text-sm">
                 年度主力测试认证收入指标流转 (万元)
@@ -359,12 +445,12 @@ export default function EnterpriseModule({
           </div>
 
           {/* Horizontal breakdown of Coordinates department proportion */}
-          <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-xs">
+          <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-xs">
             <h4 className="font-semibold text-slate-900 text-sm border-b border-slate-50 pb-2.5 mb-4">
               部室合作分流及项目落资沉淀 (单位: 万元)
             </h4>
 
-            <div className="space-y-3.5">
+            <div className="space-y-2">
               {currentCompany.deptContributions.map((contrib, i) => (
                 <div key={i} className="text-xs space-y-1">
                   <div className="flex justify-between text-slate-600 items-center">
@@ -389,7 +475,7 @@ export default function EnterpriseModule({
       </div>
 
       {/* 合作合同与履约审计大面板 */}
-      <section className="bg-white rounded-xl border border-slate-100 shadow-xs p-5 space-y-5">
+      <section className="bg-white rounded-xl border border-slate-100 shadow-xs p-4 space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-50 pb-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-indigo-55 bg-indigo-50 text-indigo-600 rounded-lg shadow-sm shadow-indigo-100 shrink-0">
@@ -451,7 +537,7 @@ export default function EnterpriseModule({
 
         {/* Custom Form to Register New Contract */}
         {showAddContractForm && (
-          <div className="bg-slate-50/70 border border-slate-150 rounded-xl p-4.5 space-y-4 animate-fadeIn">
+          <div className="bg-slate-50/70 border border-slate-150 rounded-xl p-3.5 space-y-3 animate-fadeIn">
             <div className="flex items-center justify-between border-b border-slate-200/50 pb-2">
               <h5 className="font-semibold text-xs text-slate-800 flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-indigo-500 animate-pulse"></span>
@@ -650,13 +736,13 @@ export default function EnterpriseModule({
 
                       {/* Expandable abstract container */}
                       {isExpanded && (
-                        <div className="bg-slate-50/80 border-y border-slate-100 p-4.5 text-xs text-slate-650 leading-relaxed grid grid-cols-1 md:grid-cols-3 gap-6 animate-fadeIn">
+                        <div className="bg-slate-50/80 border-y border-slate-100 p-3 text-xs text-slate-650 leading-relaxed grid grid-cols-1 md:grid-cols-3 gap-4 animate-fadeIn">
                           <div className="md:col-span-2 space-y-2">
                             <h5 className="font-bold text-slate-800 text-[11px] flex items-center gap-1.5">
                               <span className="h-1.5 w-1.5 rounded-full bg-indigo-500"></span>
                               合同合作范畴 & 复审备注
                             </h5>
-                            <div className="bg-white p-3.5 rounded-lg border border-slate-200/50 shadow-xs text-slate-600 text-[11px] leading-relaxed">
+                            <div className="bg-white p-2.5 rounded-lg border border-slate-200/50 shadow-xs text-slate-600 text-[11px] leading-relaxed">
                               {contract.summary}
                             </div>
                           </div>
@@ -696,7 +782,7 @@ export default function EnterpriseModule({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Main Contacts Decision Makers (2 Column height grid) */}
-        <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-xs">
+        <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-xs">
           <div className="flex items-center gap-1.5 border-b border-slate-50 pb-3 mb-4">
             <UserCheck className="h-4 w-4 text-indigo-600" />
             <h4 className="font-semibold text-slate-900 text-sm">企业直系对接利益干系人</h4>
@@ -726,7 +812,7 @@ export default function EnterpriseModule({
         </div>
 
         {/* Visit records log */}
-        <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-xs">
+        <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-xs">
           <div className="flex items-center gap-1.5 border-b border-slate-50 pb-3 mb-4">
             <Clock className="h-4 w-4 text-emerald-600" />
             <span className="font-semibold text-slate-900 text-sm">拜访与来台流转回溯</span>
@@ -757,7 +843,7 @@ export default function EnterpriseModule({
         </div>
 
         {/* Action / submission logs */}
-        <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-xs">
+        <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-xs">
           <div className="flex items-center gap-1.5 border-b border-slate-50 pb-3 mb-4">
             <Activity className="h-4 w-4 text-rose-500" />
             <h4 className="font-semibold text-slate-900 text-sm">企业申报与试验履约动态</h4>
