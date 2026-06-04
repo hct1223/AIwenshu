@@ -253,6 +253,7 @@ export default function App() {
       <AIChatSidebar
         isOpen={aiChatOpen}
         onToggle={() => setAiChatOpen(!aiChatOpen)}
+        currentPage={activeTab}
         onNavigateToCompany={(id) => {
           setActiveCompanyId(id);
           setActiveTab('enterprisePortrait');

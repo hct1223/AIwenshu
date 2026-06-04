@@ -44,7 +44,7 @@ export default function EnterpriseModule({
   const [contractSearchQuery, setContractSearchQuery] = useState<string>('');
   const [expandedContractId, setExpandedContractId] = useState<string | null>(null);
   const [customContracts, setCustomContracts] = useState<{ [companyId: string]: any[] }>({});
-  
+
   // State for appending new contracts locally
   const [showAddContractForm, setShowAddContractForm] = useState(false);
   const [newContractName, setNewContractName] = useState('');
@@ -54,6 +54,9 @@ export default function EnterpriseModule({
   const [newContractLeader, setNewContractLeader] = useState('张工');
   const [newContractSummary, setNewContractSummary] = useState('');
   const [formError, setFormError] = useState('');
+
+  // State for trend chart interactions
+  const [hoveredTrendBarIndex, setHoveredTrendBarIndex] = useState<number | null>(null);
 
   // Local lookup for currently managed company
   const currentCompany = COMP_MOCK_LIST.find(c => c.id === activeCompanyId) || COMP_MOCK_LIST[0];
@@ -245,6 +248,88 @@ export default function EnterpriseModule({
             </div>
           </div>
 
+          {/* AI Intelligent Analysis Module */}
+          <div className="bg-gradient-to-br from-indigo-50 to-white rounded-xl p-5 border border-indigo-100 shadow-xs">
+              <div className="flex items-center gap-1.5 border-b border-indigo-100/50 pb-3 mb-4">
+                <Sparkles className="h-4 w-4 text-indigo-600" />
+                <h4 className="font-semibold text-slate-900 text-sm">AI 智能分析与建议</h4>
+              </div>
+
+              {/* Overall Situation Analysis */}
+              <div className="mb-4">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Target className="h-3.5 w-3.5 text-indigo-600" />
+                  <h5 className="text-xs font-bold text-slate-800">整体情况分析</h5>
+                </div>
+                <div className="bg-white rounded-lg p-3 border border-slate-100 text-[11px] text-slate-600 leading-relaxed space-y-2">
+                  <p><span className="font-semibold text-slate-800">合作规模：</span>{currentCompany.name}当前与赛宝实验室累计合作金额达<span className="font-mono font-bold text-indigo-600">{totalContractAmount}万元</span>，在研/履行中合约<span className="font-mono font-bold text-emerald-600">{activeContractsCount}份</span>，属于{currentCompany.partnershipLevel}合作伙伴。</p>
+                  <p><span className="font-semibold text-slate-800">信用评级：</span>赛宝AI智能合规信誉度评分为<span className="font-mono font-bold text-indigo-600">{currentCompany.aiScore}分</span>，财务清账及合规表现为<span className="font-mono font-bold text-emerald-600">{currentCompany.complianceRating}%</span>，整体信用状况{currentCompany.aiScore >= 85 ? '优秀' : currentCompany.aiScore >= 70 ? '良好' : '一般'}。</p>
+                  <p><span className="font-semibold text-slate-800">风险指标：</span>近期关联舆情及业务波动风险指数为<span className="font-mono font-bold text-slate-700">{currentCompany.riskIndex}%</span>，{currentCompany.riskIndex > 15 ? '触发中等关注，需要密切监控' : '风险指标极低，合作安全性较高'}。</p>
+                  <p><span className="font-semibold text-slate-800">增长潜力：</span>企业属于{currentCompany.growthCategory}，{currentCompany.tags.coreDivision.join('、')}标签显示其在行业内具备较强{currentCompany.tags.businessPreference[0] || '技术'}优势，建议作为{currentCompany.growthCategory === '高增长类' ? '重点拓展' : '稳定维护'}对象。</p>
+                </div>
+              </div>
+
+              {/* AI Recommendations */}
+              <div>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Lightbulb className="h-3.5 w-3.5 text-amber-600" />
+                  <h5 className="text-xs font-bold text-slate-800">智能化建议</h5>
+                </div>
+                <div className="space-y-2">
+                  <div className="bg-white rounded-lg p-3 border border-slate-100">
+                    <div className="flex items-start gap-2">
+                      <div className="bg-indigo-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0">
+                        1
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-bold text-slate-800 text-xs mb-1">深化合作关系</div>
+                        <p className="text-slate-500 text-[11px] leading-relaxed">
+                          基于当前{activeContractsCount}份履行中合约，建议重点关注{currentCompany.deptContributions[0]?.name || '元器件检测所'}的业务拓展，利用企业在{currentCompany.tags.businessPreference[0] || '技术'}领域的优势，制定专项合作方案。
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 border border-slate-100">
+                    <div className="flex items-start gap-2">
+                      <div className="bg-indigo-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0">
+                        2
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-bold text-slate-800 text-xs mb-1">风险监控与预警</div>
+                        <p className="text-slate-500 text-[11px] leading-relaxed">
+                          当前风险指数为{currentCompany.riskIndex}%，{currentCompany.riskIndex > 15 ? '建议建立季度回访机制，重点关注财务清账和合同履约情况' : '风险较低，建议维持常规客户关系管理'}。
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 border border-slate-100">
+                    <div className="flex items-start gap-2">
+                      <div className="bg-indigo-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0">
+                        3
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-bold text-slate-800 text-xs mb-1">业务拓展机会</div>
+                        <p className="text-slate-500 text-[11px] leading-relaxed">
+                          企业在{currentCompany.industry}领域表现突出，结合赛宝实验室在计量校准、软件评测等方面的优势，可探索{currentCompany.tags.businessPreference[1] || '新兴业务'}合作机会。
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-100">
+                    <div className="flex items-start gap-2">
+                      <Info className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
+                      <div>
+                        <div className="font-bold text-indigo-900 text-xs mb-1">关键提醒</div>
+                        <p className="text-indigo-700 text-[11px] leading-relaxed">
+                          建议在{new Date().getMonth() + 1}月底前安排一次客户回访，重点跟进{currentCompany.contacts[0]?.name || '相关负责人'}关于新业务合作意向的沟通，同时关注行业政策变化对企业需求的影响。
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
         </div>
 
         {/* Middle Area: Quality Compliance Assessment and Testing comparison charts */}
@@ -300,184 +385,239 @@ export default function EnterpriseModule({
             </div>
           </div>
 
-          {/* AI Intelligent Analysis Module */}
-          <div className="bg-gradient-to-br from-indigo-50 to-white rounded-xl p-5 border border-indigo-100 shadow-xs">
-            <div className="flex items-center gap-1.5 border-b border-indigo-100/50 pb-3 mb-4">
-              <Sparkles className="h-4 w-4 text-indigo-600" />
-              <h4 className="font-semibold text-slate-900 text-sm">AI 智能分析与建议</h4>
+          {/* Cooperation Amount Overview Card */}
+          <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-xs">
+            <div className="flex items-center gap-1.5 border-b border-slate-50 pb-2 mb-4">
+              <Activity className="h-4 w-4 text-indigo-600" />
+              <h4 className="font-semibold text-slate-900 text-sm">累计合作金额总览</h4>
             </div>
-
-            {/* Overall Situation Analysis */}
-            <div className="mb-4">
-              <div className="flex items-center gap-1.5 mb-2">
-                <Target className="h-3.5 w-3.5 text-indigo-600" />
-                <h5 className="text-xs font-bold text-slate-800">整体情况分析</h5>
+            <div className="text-center">
+              <div className="text-3xl font-bold font-mono text-indigo-600">
+                ￥{totalContractAmount.toLocaleString()} <span className="text-base">万元</span>
               </div>
-              <div className="bg-white rounded-lg p-3 border border-slate-100 text-[11px] text-slate-600 leading-relaxed space-y-2">
-                <p><span className="font-semibold text-slate-800">合作规模：</span>{currentCompany.name}当前与赛宝实验室累计合作金额达<span className="font-mono font-bold text-indigo-600">{totalContractAmount}万元</span>，在研/履行中合约<span className="font-mono font-bold text-emerald-600">{activeContractsCount}份</span>，属于{currentCompany.partnershipLevel}合作伙伴。</p>
-                <p><span className="font-semibold text-slate-800">信用评级：</span>赛宝AI智能合规信誉度评分为<span className="font-mono font-bold text-indigo-600">{currentCompany.aiScore}分</span>，财务清账及合规表现为<span className="font-mono font-bold text-emerald-600">{currentCompany.complianceRating}%</span>，整体信用状况{currentCompany.aiScore >= 85 ? '优秀' : currentCompany.aiScore >= 70 ? '良好' : '一般'}。</p>
-                <p><span className="font-semibold text-slate-800">风险指标：</span>近期关联舆情及业务波动风险指数为<span className="font-mono font-bold text-slate-700">{currentCompany.riskIndex}%</span>，{currentCompany.riskIndex > 15 ? '触发中等关注，需要密切监控' : '风险指标极低，合作安全性较高'}。</p>
-                <p><span className="font-semibold text-slate-800">增长潜力：</span>企业属于{currentCompany.growthCategory}，{currentCompany.tags.coreDivision.join('、')}标签显示其在行业内具备较强{currentCompany.tags.businessPreference[0] || '技术'}优势，建议作为{currentCompany.growthCategory === '高增长类' ? '重点拓展' : '稳定维护'}对象。</p>
+              <div className="text-xs text-slate-400 mt-2 flex items-center justify-center gap-3">
+                <span>包含所有历史合作合同总额</span>
+                <span className="inline-flex items-center gap-1 text-emerald-600">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                  当前履行中合约 {activeContractsCount} 份
+                </span>
               </div>
-            </div>
-
-            {/* AI Recommendations */}
-            <div>
-              <div className="flex items-center gap-1.5 mb-2">
-                <Lightbulb className="h-3.5 w-3.5 text-amber-600" />
-                <h5 className="text-xs font-bold text-slate-800">智能化建议</h5>
-              </div>
-              <div className="space-y-2">
-                <div className="bg-white rounded-lg p-3 border border-slate-100">
-                  <div className="flex items-start gap-2">
-                    <div className="bg-indigo-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0">
-                      1
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-bold text-slate-800 text-xs mb-1">深化合作关系</div>
-                      <p className="text-slate-500 text-[11px] leading-relaxed">
-                        基于当前{activeContractsCount}份履行中合约，建议重点关注{currentCompany.deptContributions[0]?.name || '元器件检测所'}的业务拓展，利用企业在{currentCompany.tags.businessPreference[0] || '技术'}领域的优势，制定专项合作方案。
-                      </p>
-                    </div>
-                  </div>
+              <div className="mt-3 pt-3 border-t border-slate-100 flex justify-center gap-6 text-xs">
+                <div className="text-center">
+                  <div className="font-mono font-bold text-slate-800">{currentCompany.partnershipLevel}</div>
+                  <div className="text-slate-400">合作级别</div>
                 </div>
-                <div className="bg-white rounded-lg p-3 border border-slate-100">
-                  <div className="flex items-start gap-2">
-                    <div className="bg-indigo-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0">
-                      2
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-bold text-slate-800 text-xs mb-1">风险监控与预警</div>
-                      <p className="text-slate-500 text-[11px] leading-relaxed">
-                        当前风险指数为{currentCompany.riskIndex}%，{currentCompany.riskIndex > 15 ? '建议建立季度回访机制，重点关注财务清账和合同履约情况' : '风险较低，建议维持常规客户关系管理'}。
-                      </p>
-                    </div>
-                  </div>
+                <div className="text-center">
+                  <div className="font-mono font-bold text-slate-800">{currentCompany.growthCategory}</div>
+                  <div className="text-slate-400">增长类别</div>
                 </div>
-                <div className="bg-white rounded-lg p-3 border border-slate-100">
-                  <div className="flex items-start gap-2">
-                    <div className="bg-indigo-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0">
-                      3
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-bold text-slate-800 text-xs mb-1">业务拓展机会</div>
-                      <p className="text-slate-500 text-[11px] leading-relaxed">
-                        企业在{currentCompany.industry}领域表现突出，结合赛宝实验室在计量校准、软件评测等方面的优势，可探索{currentCompany.tags.businessPreference[1] || '新兴业务'}合作机会。
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-100">
-                  <div className="flex items-start gap-2">
-                    <Info className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
-                    <div>
-                      <div className="font-bold text-indigo-900 text-xs mb-1">关键提醒</div>
-                      <p className="text-indigo-700 text-[11px] leading-relaxed">
-                        建议在{new Date().getMonth() + 1}月底前安排一次客户回访，重点跟进{currentCompany.contacts[0]?.name || '相关负责人'}关于新业务合作意向的沟通，同时关注行业政策变化对企业需求的影响。
-                      </p>
-                    </div>
-                  </div>
+                <div className="text-center">
+                  <div className="font-mono font-bold text-slate-800">{currentCompany.aiScore}分</div>
+                  <div className="text-slate-400">AI评分</div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Comparison charts between last year and current year for active company */}
+          {/* Comparison charts between last three years for active company */}
           <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-xs">
             <div className="flex items-center justify-between border-b border-slate-50 pb-2.5 mb-4">
-              <h4 className="font-semibold text-slate-900 text-sm">
-                年度主力测试认证收入指标流转 (万元)
-              </h4>
+              <div>
+                <h4 className="font-semibold text-slate-900 text-sm">
+                  连续三年业务增长趋势对比 (万元)
+                </h4>
+                <p className="text-[10px] text-slate-400 mt-0.5">横览 2022-2024 年度各业务科目累计收入流转趋势</p>
+              </div>
               <div className="flex gap-3 text-xs">
                 <span className="flex items-center gap-1">
-                  <span className="h-2 w-2 rounded-full bg-slate-200" />
-                  2022 年
+                  <span className="h-2 w-2 rounded-full bg-slate-300" />
+                  2022
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="h-2 w-2 rounded-full bg-indigo-500" />
-                  2023 年
+                  2023
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                  2024
                 </span>
               </div>
             </div>
 
             <div className="space-y-4">
               {[
-                { label: '元器件筛选检测', k2022: currentCompany.metrics[0].testingAmount, k2023: currentCompany.metrics[1].testingAmount },
-                { label: '质量认证与安全评估', k2022: currentCompany.metrics[0].certAmount, k2023: currentCompany.metrics[1].certAmount },
-                { label: '高精计量与参数校准', k2022: currentCompany.metrics[0].calibrationAmount, k2023: currentCompany.metrics[1].calibrationAmount },
-                { label: '软硬件数字化开发支持', k2022: currentCompany.metrics[0].devAmount, k2023: currentCompany.metrics[1].devAmount },
-                { label: 'TSQ人才职业效能检验培训', k2022: currentCompany.metrics[0].trainingAmount, k2023: currentCompany.metrics[1].trainingAmount }
+                { label: '元器件筛选检测', k2022: currentCompany.metrics[0]?.testingAmount || 0, k2023: currentCompany.metrics[1]?.testingAmount || 0, k2024: currentCompany.metrics[2]?.testingAmount || 0 },
+                { label: '质量认证与安全评估', k2022: currentCompany.metrics[0]?.certAmount || 0, k2023: currentCompany.metrics[1]?.certAmount || 0, k2024: currentCompany.metrics[2]?.certAmount || 0 },
+                { label: '高精计量与参数校准', k2022: currentCompany.metrics[0]?.calibrationAmount || 0, k2023: currentCompany.metrics[1]?.calibrationAmount || 0, k2024: currentCompany.metrics[2]?.calibrationAmount || 0 },
+                { label: '软硬件数字化开发支持', k2022: currentCompany.metrics[0]?.devAmount || 0, k2023: currentCompany.metrics[1]?.devAmount || 0, k2024: currentCompany.metrics[2]?.devAmount || 0 },
+                { label: 'TSQ人才职业效能检验培训', k2022: currentCompany.metrics[0]?.trainingAmount || 0, k2023: currentCompany.metrics[1]?.trainingAmount || 0, k2024: currentCompany.metrics[2]?.trainingAmount || 0 }
               ].map((item, idx) => {
                 // Determine layout percentage relative to max of metrics
-                const maxBar = 5000;
+                const maxBar = 7000;
                 const pct2022 = (item.k2022 / maxBar) * 100;
                 const pct2023 = (item.k2023 / maxBar) * 100;
+                const pct2024 = (item.k2024 / maxBar) * 100;
+
+                // Calculate growth rates
+                const yoy2023 = item.k2022 > 0 ? ((item.k2023 - item.k2022) / item.k2022 * 100).toFixed(1) : '0';
+                const yoy2024 = item.k2023 > 0 ? ((item.k2024 - item.k2023) / item.k2023 * 100).toFixed(1) : '0';
 
                 return (
-                  <div key={idx} className="space-y-1.5 text-xs">
+                  <div
+                    key={idx}
+                    className="space-y-1.5 text-xs"
+                    onMouseEnter={() => setHoveredTrendBarIndex(idx)}
+                    onMouseLeave={() => setHoveredTrendBarIndex(null)}
+                  >
                     <div className="flex justify-between font-medium text-slate-700">
                       <span>{item.label}</span>
                       <span className="font-mono">
-                        ￥{item.k2023} / <span className="text-slate-400 font-medium">￥{item.k2022} 万</span>
+                        {hoveredTrendBarIndex === idx ? (
+                          <>
+                            <span className="text-emerald-600 font-bold">￥{item.k2024}万</span>
+                            <span className="text-slate-400 mx-1">|</span>
+                            <span className="text-slate-400">2023: ￥{item.k2023}万</span>
+                            <span className="text-slate-400 mx-1">|</span>
+                            <span className="text-slate-400">2022: ￥{item.k2022}万</span>
+                          </>
+                        ) : (
+                          <>
+                            ￥{item.k2024} / <span className="text-slate-400 font-medium">￥{item.k2023} / ￥{item.k2022} 万</span>
+                          </>
+                        )}
                       </span>
                     </div>
 
-                    <div className="space-y-1 bg-slate-50/50 p-1 rounded-md border border-slate-100">
-                      {/* Bar 2023 */}
+                    <div className="space-y-1 bg-slate-50/50 p-1.5 rounded-md border border-slate-100">
+                      {/* Bar 2024 */}
                       <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-indigo-600 rounded-full transition-all duration-1000"
+                        <div
+                          className="h-full bg-emerald-500 rounded-full transition-all duration-1000"
+                          style={{ width: `${pct2024}%` }}
+                        />
+                      </div>
+                      {/* Bar 2023 */}
+                      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-indigo-500 rounded-full transition-all duration-1000"
                           style={{ width: `${pct2023}%` }}
                         />
                       </div>
                       {/* Bar 2022 */}
-                      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden animate-pulse">
-                        <div 
-                          className="h-full bg-slate-350 rounded-full transition-all duration-1000"
+                      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-slate-300 rounded-full transition-all duration-1000"
                           style={{ width: `${pct2022}%` }}
                         />
                       </div>
                     </div>
+
+                    {/* Growth indicator */}
+                    {hoveredTrendBarIndex === idx && (
+                      <div className="flex items-center justify-between text-[10px] text-slate-500 mt-1 pt-1 border-t border-slate-100">
+                        <span>2023年同比增长: <span className={parseFloat(yoy2023) >= 0 ? 'text-emerald-600' : 'text-rose-600'}>{yoy2023}%</span></span>
+                        <span>2024年同比增长: <span className={parseFloat(yoy2024) >= 0 ? 'text-emerald-600' : 'text-rose-600'}>{yoy2024}%</span></span>
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
           </div>
 
-          {/* Horizontal breakdown of Coordinates department proportion */}
+          {/* Enhanced Department Cooperation Distribution Visualization */}
           <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-xs">
-            <h4 className="font-semibold text-slate-900 text-sm border-b border-slate-50 pb-2.5 mb-4">
-              部室合作分流及项目落资沉淀 (单位: 万元)
-            </h4>
+            <div className="flex items-center justify-between border-b border-slate-50 pb-2.5 mb-4">
+              <div>
+                <h4 className="font-semibold text-slate-900 text-sm">合作业务分类及金额对比</h4>
+                <p className="text-[10px] text-slate-400 mt-0.5">各部室承接业务金额分布及占比情况</p>
+              </div>
+              <span className="text-[10px] text-slate-400 font-mono">单位: 万元</span>
+            </div>
 
-            <div className="space-y-2">
+            <div className="space-y-3">
               {currentCompany.deptContributions.map((contrib, i) => (
-                <div key={i} className="text-xs space-y-1">
+                <div key={i} className="text-xs space-y-1.5">
                   <div className="flex justify-between text-slate-600 items-center">
-                    <span className="font-medium text-slate-700">{contrib.name}</span>
+                    <span className="font-medium text-slate-700 flex items-center gap-1.5">
+                      <span className={`h-1.5 w-1.5 rounded-full ${
+                        i === 0 ? 'bg-indigo-500' :
+                        i === 1 ? 'bg-sky-500' :
+                        i === 2 ? 'bg-emerald-500' :
+                        'bg-violet-500'
+                      }`}></span>
+                      {contrib.name}
+                    </span>
                     <span className="font-mono font-bold text-slate-800">
-                      {contrib.ratio}% <span className="text-slate-400 text-[10px] font-normal">({contrib.amount} 万)</span>
+                      {contrib.amount} <span className="text-slate-400 text-[10px] font-normal">万 ({contrib.ratio}%)</span>
                     </span>
                   </div>
 
-                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-slate-800 rounded-full transition-all duration-500"
+                  <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden shadow-inner">
+                    <div
+                      className={`h-full rounded-full transition-all duration-700 ${
+                        i === 0 ? 'bg-gradient-to-r from-indigo-500 to-indigo-400' :
+                        i === 1 ? 'bg-gradient-to-r from-sky-500 to-sky-400' :
+                        i === 2 ? 'bg-gradient-to-r from-emerald-500 to-emerald-400' :
+                        'bg-gradient-to-r from-violet-500 to-violet-400'
+                      }`}
                       style={{ width: `${contrib.ratio}%` }}
                     />
+                  </div>
+
+                  {/* Department insights tag */}
+                  <div className="flex items-center justify-between mt-1">
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                      i === 0 ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' :
+                      i === 1 ? 'bg-sky-50 text-sky-700 border border-sky-100' :
+                      i === 2 ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                      'bg-violet-50 text-violet-700 border border-violet-100'
+                    }`}>
+                      {contrib.ratio >= 35 ? '主力承接部门' :
+                       contrib.ratio >= 25 ? '核心协作部门' :
+                       contrib.ratio >= 15 ? '重要支撑部门' :
+                       '新兴潜力部门'}
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      {contrib.ratio >= 35 ? '🔥 高贡献度' :
+                       contrib.ratio >= 25 ? '📈 稳定增长' :
+                       '🌱 培育中'}
+                    </span>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
 
+            {/* Summary statistics */}
+            <div className="mt-4 pt-3 border-t border-slate-100 grid grid-cols-3 gap-3 text-center">
+              <div className="bg-slate-50 rounded-lg p-2">
+                <div className="font-mono text-lg font-bold text-slate-800">
+                  {currentCompany.deptContributions.length}
+                </div>
+                <div className="text-[10px] text-slate-400">合作部室</div>
+              </div>
+              <div className="bg-slate-50 rounded-lg p-2">
+                <div className="font-mono text-lg font-bold text-indigo-600">
+                  {currentCompany.deptContributions[0]?.ratio || 0}%
+                </div>
+                <div className="text-[10px] text-slate-400">最高占比</div>
+              </div>
+              <div className="bg-slate-50 rounded-lg p-2">
+                <div className="font-mono text-lg font-bold text-emerald-600">
+                  {currentCompany.deptContributions.reduce((sum, d) => sum + d.amount, 0)}
+                </div>
+                <div className="text-[10px] text-slate-400">总金额(万)</div>
+              </div>
+            </div>
+          </div>
         </div>
+
       </div>
 
       {/* 合作合同与履约审计大面板 */}
       <section className="bg-white rounded-xl border border-slate-100 shadow-xs p-4 space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-50 pb-4">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-50 pb-4">
+            <div className="flex items-center gap-3">
             <div className="p-2 bg-indigo-55 bg-indigo-50 text-indigo-600 rounded-lg shadow-sm shadow-indigo-100 shrink-0">
               <FileText className="h-5 w-5 stroke-[2.2]" />
             </div>
@@ -776,10 +916,10 @@ export default function EnterpriseModule({
             </div>
           )}
         </div>
-      </section>
+        </section>
 
-      {/* Row 3 - Sub details: Physical Visits History & Submissions/Action logs & Contacts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Row 3 - Sub details: Physical Visits History & Submissions/Action logs & Contacts */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Main Contacts Decision Makers (2 Column height grid) */}
         <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-xs">

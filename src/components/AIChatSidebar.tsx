@@ -41,9 +41,10 @@ interface AIChatSidebarProps {
   onToggle: () => void;
   onNavigateToCompany?: (id: string) => void;
   onNavigateToGroup?: (id: string) => void;
+  currentPage?: string;
 }
 
-export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, onNavigateToGroup }: AIChatSidebarProps) {
+export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, onNavigateToGroup, currentPage = 'dashboard' }: AIChatSidebarProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -58,6 +59,63 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // 根据当前页面生成推荐话题
+  const getPageSpecificTopics = () => {
+    const topics: { title: string; prompt: string; icon: string }[] = [];
+
+    switch (currentPage) {
+      case 'dashboard':
+        topics.push(
+          { title: '今日数据概览', prompt: '今天新增了多少合作合同？总金额是多少？', icon: '📊' },
+          { title: '高价值客户', prompt: '列出合作金额前5的企业及其基本信息', icon: '💼' },
+          { title: '本月增长趋势', prompt: '本月与上月相比，合作额增长了多少？', icon: '📈' },
+          { title: '风险预警企业', prompt: '有哪些企业风险指数超过15？需要重点关注', icon: '⚠️' }
+        );
+        break;
+      case 'enterpriseSearch':
+        topics.push(
+          { title: '搜索高增长企业', prompt: '找出AI评分90分以上且属于高增长类的企业', icon: '🚀' },
+          { title: '战略客户筛选', prompt: '查找合作金额超过5000万的战略级合作伙伴', icon: '⭐' },
+          { title: '华南地区企业', prompt: '列出华南地区的高新技术企业有哪些？', icon: '🌏' },
+          { title: '低风险供应商', prompt: '找出风险指数低于10且合规评分95以上的企业', icon: '🛡️' }
+        );
+        break;
+      case 'enterprisePortrait':
+        topics.push(
+          { title: '企业画像分析', prompt: '分析当前企业的核心竞争力和合作优势', icon: '🏢' },
+          { title: '合同履约情况', prompt: '查看当前企业的所有合同及履约状态', icon: '📄' },
+          { title: '业务分布', prompt: '展示当前企业与各部门的合作金额分布', icon: '📊' },
+          { title: '增长趋势', prompt: '分析当前企业近三年的业务增长趋势', icon: '📈' }
+        );
+        break;
+      case 'groupSearch':
+        topics.push(
+          { title: '集团整体分析', prompt: '分析集团的整体合作情况和潜力', icon: '🏛️' },
+          { title: '子公司覆盖', prompt: '查看集团下有哪些子公司还未合作', icon: '🔍' },
+          { title: '集团风险预警', prompt: '分析集团近期有哪些风险点需要关注', icon: '⚠️' },
+          { title: '合作建议', prompt: '针对该集团提供下一步合作建议', icon: '💡' }
+        );
+        break;
+      case 'businessReport':
+        topics.push(
+          { title: '生成月度报告', prompt: '生成本月的业务数据报告，包含关键指标', icon: '📋' },
+          { title: '部室业绩对比', prompt: '对比各部门本季度的业绩表现', icon: '🏆' },
+          { title: '客户分析', prompt: '分析本月新增客户和流失客户情况', icon: '👥' },
+          { title: '业务类型分布', prompt: '统计各业务类型的金额占比和增长情况', icon: '📊' }
+        );
+        break;
+      default:
+        topics.push(
+          { title: '企业画像查询', prompt: '查询华为技术的企业画像和合作情况', icon: '🏢' },
+          { title: '合同信息查询', prompt: '查询华为的合同信息和履约状态', icon: '📄' },
+          { title: '企业对比', prompt: '对比华为和中兴的合作情况差异', icon: '⚖️' },
+          { title: '数据分析', prompt: '分析近期的业务数据趋势', icon: '📊' }
+        );
+    }
+
+    return topics;
+  };
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -68,41 +126,91 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
 
   // 智能查询企业
   const findCompanies = (query: string): Company[] => {
+    // 企业别名映射表 - 支持简称、别名自动识别
+    const COMPANY_ALIASES: Record<string, string> = {
+      '华为': '华为技术有限公司',
+      '华子': '华为技术有限公司',
+      'hw': '华为技术有限公司',
+      'huawei': '华为技术有限公司',
+      '比亚迪': '比亚迪股份有限公司',
+      'byd': '比亚迪股份有限公司',
+      '中兴': '中兴通讯股份有限公司',
+      'zte': '中兴通讯股份有限公司',
+      '赛宝': '赛宝智能科技有限公司',
+      '赛宝智能': '赛宝智能科技有限公司'
+    };
+
     const keywords = query.toLowerCase().split(/[，、\s,]+/);
     const foundCompanies = new Set<string>();
 
     keywords.forEach(keyword => {
-      if (keyword.length < 2) return;
+      if (keyword.length < 1) return;
+
+      // 检查是否是别名，如果是则替换为全称
+      const fullName = COMPANY_ALIASES[keyword] || keyword;
 
       COMP_MOCK_LIST.forEach(company => {
-        const matchName = company.name.toLowerCase().includes(keyword);
-        const matchPinyin = company.name.toLowerCase().replace(/\s/g, '').includes(keyword);
+        // 1. 精确匹配全称
+        const matchName = company.name.toLowerCase().includes(fullName);
+        // 2. 去除空格匹配
+        const matchPinyin = company.name.toLowerCase().replace(/\s/g, '').includes(fullName.replace(/\s/g, ''));
+        // 3. 行业匹配
         const matchIndustry = company.industry.toLowerCase().includes(keyword);
+        // 4. 法人代表匹配
         const matchRepresentative = company.representative.toLowerCase().includes(keyword);
+        // 5. 别名直接匹配
+        const matchAlias = fullName === company.name;
 
-        if (matchName || matchPinyin || matchIndustry || matchRepresentative) {
+        if (matchName || matchPinyin || matchIndustry || matchRepresentative || matchAlias) {
           foundCompanies.add(company.id);
         }
       });
     });
+
+    // 如果没有找到，尝试模糊匹配企业名称中的关键词
+    if (foundCompanies.size === 0) {
+      COMP_MOCK_LIST.forEach(company => {
+        const companyName = company.name.toLowerCase();
+        // 检查查询词是否包含在企业名称的关键词中
+        const companyKeywords = companyName.split(/[有限公司股份科技集团]/).filter(k => k.length >= 2);
+        companyKeywords.forEach(kw => {
+          if (query.toLowerCase().includes(kw) || kw.includes(query.toLowerCase())) {
+            foundCompanies.add(company.id);
+          }
+        });
+      });
+    }
 
     return Array.from(foundCompanies).map(id => COMP_MOCK_LIST.find(c => c.id === id)!);
   };
 
   // 智能查询集团
   const findGroups = (query: string): GroupData[] => {
+    // 集团别名映射表
+    const GROUP_ALIASES: Record<string, string> = {
+      '华为集团': '华为集团',
+      '华为': '华为集团',
+      '中国电科': '中国电科集团',
+      '电科': '中国电科集团',
+      'cetc': '中国电科集团'
+    };
+
     const keywords = query.toLowerCase().split(/[，、\s,]+/);
     const foundGroups = new Set<string>();
 
     keywords.forEach(keyword => {
-      if (keyword.length < 2) return;
+      if (keyword.length < 1) return;
+
+      // 检查是否是别名，如果是则替换为全称
+      const fullName = GROUP_ALIASES[keyword] || keyword;
 
       GROUP_MOCK_LIST.forEach(group => {
-        const matchName = group.name.toLowerCase().includes(keyword);
+        const matchName = group.name.toLowerCase().includes(fullName);
         const matchControlling = group.controllingEntity.toLowerCase().includes(keyword);
+        const matchAlias = fullName === group.name;
         const isGroupKeyword = keyword.includes('集团') || keyword.includes('group');
 
-        if (matchName || matchControlling || isGroupKeyword) {
+        if (matchName || matchControlling || matchAlias || isGroupKeyword) {
           foundGroups.add(group.id);
         }
       });
@@ -348,19 +456,61 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
 
   // 生成对比数据
   const generateComparisonData = (companies: Company[]) => {
+    // 计算累计合作金额
+    const calculateTotalAmount = (company: Company) => {
+      if (!company.cooperationContracts || company.cooperationContracts.length === 0) {
+        // 如果没有合同数据，使用metrics总和作为替代
+        const latestMetrics = company.metrics[company.metrics.length - 1];
+        return latestMetrics
+          ? Object.values(latestMetrics).slice(1).reduce((a, b) => (a as number) + (b as number), 0) as number
+          : 0;
+      }
+      return company.cooperationContracts.reduce((sum, contract) => sum + contract.amount, 0);
+    };
+
+    // 计算三年增长率
+    const calculateGrowthRate = (company: Company) => {
+      if (company.metrics.length < 3) return 'N/A';
+      const metrics2022 = company.metrics.find(m => m.year === '2022');
+      const metrics2024 = company.metrics.find(m => m.year === '2024');
+      if (!metrics2022 || !metrics2024) return 'N/A';
+
+      const total2022 = Object.values(metrics2022).slice(1).reduce((a, b) => (a as number) + (b as number), 0) as number;
+      const total2024 = Object.values(metrics2024).slice(1).reduce((a, b) => (a as number) + (b as number), 0) as number;
+
+      if (total2022 === 0) return 'N/A';
+      const growth = ((total2024 - total2022) / total2022 * 100).toFixed(1);
+      return `${growth}%`;
+    };
+
+    // 获取主要业务部门
+    const getMainDept = (company: Company) => {
+      if (!company.deptContributions || company.deptContributions.length === 0) return 'N/A';
+      const mainDept = company.deptContributions.reduce((prev, current) =>
+        current.ratio > prev.ratio ? current : prev
+      );
+      return `${mainDept.name.slice(0, 8)}...(${mainDept.ratio}%)`;
+    };
+
     return {
       dimensions: [
         { key: 'aiScore', label: 'AI质量评分', companies: companies.map(c => ({ name: c.name, value: c.aiScore })) },
         { key: 'complianceRating', label: '合规评分', companies: companies.map(c => ({ name: c.name, value: c.complianceRating })) },
         { key: 'riskIndex', label: '风险指数', companies: companies.map(c => ({ name: c.name, value: c.riskIndex })) },
+        { key: 'totalCooperationAmount', label: '累计合作金额(万元)', companies: companies.map(c => ({ name: c.name, value: calculateTotalAmount(c) })) },
+        { key: 'growthRate', label: '三年增长率(2022-2024)', companies: companies.map(c => ({ name: c.name, value: calculateGrowthRate(c) })) },
+        { key: 'mainDept', label: '主要合作部门', companies: companies.map(c => ({ name: c.name, value: getMainDept(c) })) },
         { key: 'insuredEmployees', label: '参保人数', companies: companies.map(c => ({ name: c.name, value: c.insuredEmployees })) },
         {
-          key: 'totalAmount',
-          label: '2023年合作总额(万元)',
-          companies: companies.map(c => ({
-            name: c.name,
-            value: c.metrics[1] ? Object.values(c.metrics[1]).slice(1).reduce((a, b) => (a as number) + (b as number), 0) as number : 0
-          }))
+          key: 'latestYearAmount',
+          label: '2024年合作额(万元)',
+          companies: companies.map(c => {
+            const metrics2024 = c.metrics.find(m => m.year === '2024');
+            return {
+              name: c.name,
+              value: metrics2024 ? Object.values(metrics2024).slice(1).reduce((a, b) => (a as number) + (b as number), 0) as number : 0
+            };
+          })
         }
       ]
     };
@@ -603,28 +753,27 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
             <tbody className="divide-y divide-slate-100">
               {comparisonData.dimensions.map((dimension: any) => {
                 const values = dimension.companies.map((c: any) => c.value);
-                const isBetter = dimension.key === 'riskIndex'
+                // 对于字符串类型（如增长率），不计算最优值
+                const hasStringValues = values.some((v: any) => typeof v === 'string');
+                const isBetter = !hasStringValues && (dimension.key === 'riskIndex'
                   ? Math.min(...values)
-                  : Math.max(...values);
+                  : Math.max(...values));
 
                 return (
                   <tr key={dimension.key} className="hover:bg-slate-50">
                     <td className="py-2.5 px-3 font-medium text-slate-700">{dimension.label}</td>
                     {dimension.companies.map((companyData: any) => {
-                      const isBest = isBetter !== undefined && companyData.value === isBetter;
-                      const isWorst = dimension.key === 'riskIndex'
+                      const isBest = !hasStringValues && isBetter !== undefined && companyData.value === isBetter;
+                      const isWorst = !hasStringValues && (dimension.key === 'riskIndex'
                         ? companyData.value === Math.max(...values)
-                        : companyData.value === Math.min(...values);
+                        : companyData.value === Math.min(...values));
 
                       return (
                         <td key={companyData.name} className="py-2.5 px-3 text-center">
-                          <span className={`font-mono font-bold ${
+                          <span className={`font-mono font-bold text-xs ${
                             isBest ? 'text-emerald-600' : isWorst ? 'text-red-500' : 'text-slate-700'
                           }`}>
                             {companyData.value}
-                            {dimension.key === 'aiScore' || dimension.key === 'complianceRating' ? '分' : ''}
-                            {dimension.key === 'totalAmount' ? '万' : ''}
-                            {dimension.key === 'insuredEmployees' ? '人' : ''}
                           </span>
                           {isBest && <span className="ml-1 text-[10px] text-emerald-500">★</span>}
                         </td>
@@ -632,7 +781,7 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
                     })}
                     <td className="py-2.5 px-3 text-center">
                       <span className="text-[10px] text-slate-400">
-                        {isBest !== undefined ? (dimension.key === 'riskIndex' ? '最低' : '最高') : '-'}
+                        {!hasStringValues && isBetter !== undefined ? (dimension.key === 'riskIndex' ? '最低' : '最高') : '-'}
                       </span>
                     </td>
                   </tr>
@@ -1046,6 +1195,33 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
               企业统计
             </button>
           </div>
+
+          {/* Page-Specific Recommended Topics */}
+          {messages.length === 1 && (
+            <div className="mb-3 p-3 bg-gradient-to-r from-indigo-50 to-sky-50 rounded-xl border border-indigo-100">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
+                <span className="text-xs font-semibold text-indigo-900">当前页面推荐话题</span>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                {getPageSpecificTopics().map((topic, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setInputValue(topic.prompt)}
+                    className="text-left px-2.5 py-2 bg-white rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 transition group"
+                  >
+                    <div className="flex items-start gap-1.5">
+                      <span className="text-sm">{topic.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[10px] font-medium text-slate-700 group-hover:text-indigo-700 line-clamp-1">{topic.title}</div>
+                        <div className="text-[9px] text-slate-400 line-clamp-1">{topic.prompt}</div>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="flex gap-2">
             <input

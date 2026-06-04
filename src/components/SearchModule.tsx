@@ -605,6 +605,33 @@ export default function SearchModule({ onNavigateToCompany }: SearchModuleProps)
   const hasActiveSearch = parsedConditions.length > 0;
 
   if (comparisonActive) {
+    const comparingCompanies = COMP_MOCK_LIST.filter(c => compareIds.includes(c.id));
+
+    // 计算累计合作金额
+    const calculateTotalCooperationAmount = (company: Company) => {
+      if (!company.cooperationContracts || company.cooperationContracts.length === 0) {
+        const latestMetrics = company.metrics[company.metrics.length - 1];
+        return latestMetrics
+          ? Object.values(latestMetrics).slice(1).reduce((a, b) => (a as number) + (b as number), 0) as number
+          : 0;
+      }
+      return company.cooperationContracts.reduce((sum, contract) => sum + contract.amount, 0);
+    };
+
+    // 计算三年增长率
+    const calculateThreeYearGrowth = (company: Company) => {
+      const metrics2022 = company.metrics.find(m => m.year === '2022');
+      const metrics2024 = company.metrics.find(m => m.year === '2024');
+      if (!metrics2022 || !metrics2024) return 'N/A';
+
+      const total2022 = Object.values(metrics2022).slice(1).reduce((a, b) => (a as number) + (b as number), 0) as number;
+      const total2024 = Object.values(metrics2024).slice(1).reduce((a, b) => (a as number) + (b as number), 0) as number;
+
+      if (total2022 === 0) return 'N/A';
+      const growth = ((total2024 - total2022) / total2022 * 100).toFixed(1);
+      return `${growth}%`;
+    };
+
     return (
       <div className="space-y-6">
         {/* Comparison Header */}
@@ -618,81 +645,227 @@ export default function SearchModule({ onNavigateToCompany }: SearchModuleProps)
             </button>
             <div>
               <h3 className="font-semibold text-slate-900 text-lg">企业对比分析</h3>
-              <p className="text-xs text-slate-400">已选择 {compareIds.length} 家企业进行对比</p>
+              <p className="text-xs text-slate-400">已选择 {compareIds.length} 家企业进行多维度对比</p>
             </div>
           </div>
         </div>
 
-        {/* Comparison Results */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {COMP_MOCK_LIST.filter(c => compareIds.includes(c.id)).map((comp) => {
-            const latestMetrics = comp.metrics[comp.metrics.length - 1];
-            const totalAmount = latestMetrics
-              ? Object.values(latestMetrics).slice(1).reduce((a, b) => (a as number) + (b as number), 0) as number
-              : 0;
+        {/* Comparison Table */}
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <table className="w-full text-xs">
+            <thead className="bg-slate-50 border-b border-slate-200">
+              <tr>
+                <th className="py-3 px-4 text-left font-semibold text-slate-700 w-32">对比维度</th>
+                {comparingCompanies.map(comp => (
+                  <th key={comp.id} className="py-3 px-4 text-center font-semibold text-slate-700">
+                    {comp.name.slice(0, 6)}...
+                  </th>
+                ))}
+                <th className="py-3 px-4 text-center font-semibold text-slate-700 w-16">最优</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {/* AI质量评分 */}
+              <tr className="hover:bg-slate-50">
+                <td className="py-3 px-4 font-medium text-slate-700">AI质量评分</td>
+                {comparingCompanies.map(comp => {
+                  const isBest = comp.aiScore === Math.max(...comparingCompanies.map(c => c.aiScore));
+                  return (
+                    <td key={comp.id} className="py-3 px-4 text-center">
+                      <span className={`font-mono font-bold ${isBest ? 'text-emerald-600' : 'text-slate-700'}`}>
+                        {comp.aiScore}分
+                      </span>
+                      {isBest && <span className="ml-1 text-[10px] text-emerald-500">★</span>}
+                    </td>
+                  );
+                })}
+                <td className="py-3 px-4 text-center text-[10px] text-slate-400">最高</td>
+              </tr>
 
-            return (
-              <div key={comp.id} className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm space-y-4">
-                {/* Company Header */}
-                <div className="flex items-start gap-3">
-                  <img
-                    src={comp.logo}
-                    alt={comp.name}
-                    className="h-12 w-12 rounded-lg border border-slate-200 object-contain p-1 bg-white"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-slate-900 text-sm truncate">{comp.name}</h4>
-                    <p className="text-[10px] text-slate-400">{comp.industry}</p>
-                  </div>
-                </div>
+              {/* 合规评分 */}
+              <tr className="hover:bg-slate-50">
+                <td className="py-3 px-4 font-medium text-slate-700">合规评分</td>
+                {comparingCompanies.map(comp => {
+                  const isBest = comp.complianceRating === Math.max(...comparingCompanies.map(c => c.complianceRating));
+                  return (
+                    <td key={comp.id} className="py-3 px-4 text-center">
+                      <span className={`font-mono font-bold ${isBest ? 'text-emerald-600' : 'text-slate-700'}`}>
+                        {comp.complianceRating}%
+                      </span>
+                      {isBest && <span className="ml-1 text-[10px] text-emerald-500">★</span>}
+                    </td>
+                  );
+                })}
+                <td className="py-3 px-4 text-center text-[10px] text-slate-400">最高</td>
+              </tr>
 
-                {/* Key Metrics */}
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="text-center">
-                    <div className="text-[10px] text-slate-400">AI评分</div>
-                    <div className="text-xl font-bold text-indigo-600">{comp.aiScore}</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-[10px] text-slate-400">合规</div>
-                    <div className="text-xl font-bold text-emerald-600">{comp.complianceRating}</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-[10px] text-slate-400">合作额</div>
-                    <div className="text-sm font-bold text-slate-700">{(totalAmount / 100).toFixed(1)}亿</div>
-                  </div>
-                </div>
+              {/* 风险指数 */}
+              <tr className="hover:bg-slate-50">
+                <td className="py-3 px-4 font-medium text-slate-700">风险指数</td>
+                {comparingCompanies.map(comp => {
+                  const isBest = comp.riskIndex === Math.min(...comparingCompanies.map(c => c.riskIndex));
+                  return (
+                    <td key={comp.id} className="py-3 px-4 text-center">
+                      <span className={`font-mono font-bold ${isBest ? 'text-emerald-600' : comp.riskIndex > 15 ? 'text-rose-600' : 'text-slate-700'}`}>
+                        {comp.riskIndex}%
+                      </span>
+                      {isBest && <span className="ml-1 text-[10px] text-emerald-500">★</span>}
+                    </td>
+                  );
+                })}
+                <td className="py-3 px-4 text-center text-[10px] text-slate-400">最低</td>
+              </tr>
 
-                {/* Details */}
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">法人代表:</span>
-                    <span className="font-medium text-slate-700">{comp.representative}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">注册资本:</span>
-                    <span className="font-medium text-slate-700">{comp.registeredCapital}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">风险指数:</span>
-                    <span className={`font-bold ${
-                      comp.riskIndex > 15 ? 'text-rose-600' : 'text-emerald-600'
-                    }`}>{comp.riskIndex}</span>
-                  </div>
-                </div>
+              {/* 累计合作金额 */}
+              <tr className="hover:bg-slate-50">
+                <td className="py-3 px-4 font-medium text-slate-700">累计合作金额</td>
+                {comparingCompanies.map(comp => {
+                  const amount = calculateTotalCooperationAmount(comp);
+                  const isBest = amount === Math.max(...comparingCompanies.map(c => calculateTotalCooperationAmount(c)));
+                  return (
+                    <td key={comp.id} className="py-3 px-4 text-center">
+                      <span className={`font-mono font-bold ${isBest ? 'text-emerald-600' : 'text-slate-700'}`}>
+                        ¥{amount.toLocaleString()}万
+                      </span>
+                      {isBest && <span className="ml-1 text-[10px] text-emerald-500">★</span>}
+                    </td>
+                  );
+                })}
+                <td className="py-3 px-4 text-center text-[10px] text-slate-400">最高</td>
+              </tr>
 
-                {/* Actions */}
-                <div className="pt-2 border-t border-slate-100">
-                  <button
-                    onClick={() => onNavigateToCompany(comp.id)}
-                    className="w-full text-center text-xs bg-indigo-600 text-white font-medium py-2 rounded-lg hover:bg-indigo-700 transition"
-                  >
-                    查看完整画像
-                  </button>
+              {/* 三年增长率 */}
+              <tr className="hover:bg-slate-50">
+                <td className="py-3 px-4 font-medium text-slate-700">三年增长率(2022-2024)</td>
+                {comparingCompanies.map(comp => {
+                  const growth = calculateThreeYearGrowth(comp);
+                  return (
+                    <td key={comp.id} className="py-3 px-4 text-center">
+                      <span className={`font-mono font-bold ${growth !== 'N/A' && parseFloat(growth) > 0 ? 'text-emerald-600' : 'text-slate-700'}`}>
+                        {growth}
+                      </span>
+                    </td>
+                  );
+                })}
+                <td className="py-3 px-4 text-center text-[10px] text-slate-400">-</td>
+              </tr>
+
+              {/* 主要合作部门 */}
+              <tr className="hover:bg-slate-50">
+                <td className="py-3 px-4 font-medium text-slate-700">主要合作部门</td>
+                {comparingCompanies.map(comp => {
+                  const mainDept = comp.deptContributions.length > 0
+                    ? comp.deptContributions.reduce((prev, current) => current.ratio > prev.ratio ? current : prev)
+                    : null;
+                  return (
+                    <td key={comp.id} className="py-3 px-4 text-center">
+                      <div className="text-[10px] text-slate-700">
+                        {mainDept ? `${mainDept.name.slice(0, 10)}...` : 'N/A'}
+                        {mainDept && <div className="text-[9px] text-slate-400">{mainDept.ratio}%</div>}
+                      </div>
+                    </td>
+                  );
+                })}
+                <td className="py-3 px-4 text-center text-[10px] text-slate-400">-</td>
+              </tr>
+
+              {/* 2024年合作额 */}
+              <tr className="hover:bg-slate-50">
+                <td className="py-3 px-4 font-medium text-slate-700">2024年合作额</td>
+                {comparingCompanies.map(comp => {
+                  const metrics2024 = comp.metrics.find(m => m.year === '2024');
+                  const amount = metrics2024
+                    ? Object.values(metrics2024).slice(1).reduce((a, b) => (a as number) + (b as number), 0) as number
+                    : 0;
+                  const isBest = amount === Math.max(...comparingCompanies.map(c => {
+                    const m = c.metrics.find(m => m.year === '2024');
+                    return m ? Object.values(m).slice(1).reduce((a, b) => (a as number) + (b as number), 0) as number : 0;
+                  }));
+                  return (
+                    <td key={comp.id} className="py-3 px-4 text-center">
+                      <span className={`font-mono font-bold ${isBest ? 'text-emerald-600' : 'text-slate-700'}`}>
+                        ¥{amount.toLocaleString()}万
+                      </span>
+                      {isBest && <span className="ml-1 text-[10px] text-emerald-500">★</span>}
+                    </td>
+                  );
+                })}
+                <td className="py-3 px-4 text-center text-[10px] text-slate-400">最高</td>
+              </tr>
+
+              {/* 参保人数 */}
+              <tr className="hover:bg-slate-50">
+                <td className="py-3 px-4 font-medium text-slate-700">参保人数</td>
+                {comparingCompanies.map(comp => {
+                  const isBest = comp.insuredEmployees === Math.max(...comparingCompanies.map(c => c.insuredEmployees));
+                  return (
+                    <td key={comp.id} className="py-3 px-4 text-center">
+                      <span className={`font-mono font-bold ${isBest ? 'text-emerald-600' : 'text-slate-700'}`}>
+                        {comp.insuredEmployees}人
+                      </span>
+                      {isBest && <span className="ml-1 text-[10px] text-emerald-500">★</span>}
+                    </td>
+                  );
+                })}
+                <td className="py-3 px-4 text-center text-[10px] text-slate-400">最高</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* Business Category Distribution Comparison */}
+        <div className="bg-white rounded-xl p-5 border border-slate-200">
+          <h4 className="font-semibold text-slate-900 text-sm mb-4">合作业务分类金额对比 (2024年)</h4>
+          <div className="space-y-4">
+            {['元器件筛选检测', '质量认证与安全评估', '高精计量与参数校准', '软硬件数字化开发支持', 'TSQ人才职业效能检验培训'].map((category, idx) => (
+              <div key={idx} className="space-y-2">
+                <div className="text-xs font-medium text-slate-700">{category}</div>
+                <div className="space-y-1">
+                  {comparingCompanies.map((comp, compIdx) => {
+                    const metrics2024 = comp.metrics.find(m => m.year === '2024');
+                    let value = 0;
+                    if (metrics2024) {
+                      if (idx === 0) value = metrics2024.testingAmount;
+                      else if (idx === 1) value = metrics2024.certAmount;
+                      else if (idx === 2) value = metrics2024.calibrationAmount;
+                      else if (idx === 3) value = metrics2024.devAmount;
+                      else if (idx === 4) value = metrics2024.trainingAmount;
+                    }
+                    const maxValue = 6000;
+                    const percent = (value / maxValue) * 100;
+                    const colors = ['bg-indigo-500', 'bg-sky-500', 'bg-emerald-500'];
+                    const color = colors[compIdx % colors.length];
+
+                    return (
+                      <div key={comp.id} className="flex items-center gap-2">
+                        <span className="text-[10px] text-slate-500 w-16 truncate">{comp.name.slice(0, 6)}...</span>
+                        <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
+                          <div
+                            className={`h-full ${color} rounded-full transition-all duration-700`}
+                            style={{ width: `${percent}%` }}
+                          />
+                        </div>
+                        <span className="text-[10px] font-mono text-slate-700 w-16 text-right">¥{value}万</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            );
-          })}
+            ))}
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex justify-center gap-4">
+          {comparingCompanies.map(comp => (
+            <button
+              key={comp.id}
+              onClick={() => onNavigateToCompany(comp.id)}
+              className="px-6 py-2.5 text-xs bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium"
+            >
+              查看{comp.name.slice(0, 4)}...完整画像
+            </button>
+          ))}
         </div>
       </div>
     );

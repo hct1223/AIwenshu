@@ -36,7 +36,8 @@ export const COMP_MOCK_LIST: Company[] = [
     saibaoCooperationSummary: '华为与工信部电子五所（赛宝实验室）合作历史超过25年。双方在元器件失效分析、车载智能网联软硬件可靠性测试、低空飞行雷达标定计量等领域开展全方位合作。作为赛宝的长期战略客户，华为在其核心供应链元器件筛选、软件测试等任务中常年指定赛宝作为第三方检测检验机构。',
     metrics: [
       { year: '2022', testingAmount: 3820, certAmount: 1240, calibrationAmount: 1820, devAmount: 950, trainingAmount: 490 },
-      { year: '2023', testingAmount: 4920, certAmount: 1650, calibrationAmount: 2240, devAmount: 1100, trainingAmount: 580 }
+      { year: '2023', testingAmount: 4920, certAmount: 1650, calibrationAmount: 2240, devAmount: 1100, trainingAmount: 580 },
+      { year: '2024', testingAmount: 5850, certAmount: 1980, calibrationAmount: 2680, devAmount: 1350, trainingAmount: 720 }
     ],
     deptContributions: [
       { name: '技推处 (技术创新与成果推广)', ratio: 35, amount: 2310 },
@@ -130,7 +131,8 @@ export const COMP_MOCK_LIST: Company[] = [
     saibaoCooperationSummary: '中兴通讯在5G高频通信及天线计量、核心光芯片测试以及供应链环境应力测试中，与赛宝实验室长期建立联合实验室标准。双方共同起草了多项通信领域的国家和行业质量标准。',
     metrics: [
       { year: '2022', testingAmount: 2100, certAmount: 850, calibrationAmount: 1100, devAmount: 430, trainingAmount: 210 },
-      { year: '2023', testingAmount: 2450, certAmount: 920, calibrationAmount: 1300, devAmount: 510, trainingAmount: 290 }
+      { year: '2023', testingAmount: 2450, certAmount: 920, calibrationAmount: 1300, devAmount: 510, trainingAmount: 290 },
+      { year: '2024', testingAmount: 2920, certAmount: 1120, calibrationAmount: 1550, devAmount: 620, trainingAmount: 380 }
     ],
     deptContributions: [
       { name: '技推处 (技术成果转化)', ratio: 45, amount: 1200 },
@@ -205,7 +207,8 @@ export const COMP_MOCK_LIST: Company[] = [
     saibaoCooperationSummary: '比亚迪与赛宝实验室合力在新一代车规芯片（如IGBT及碳化硅半导体）失效风险排查、动力电池极端条件热失控测试以及无人智能驾驶系统仿真安全性检测深度对公。目前比亚迪半导体部门在申报车规认证时，将赛宝作为指定的国家一级质量合作检测所。',
     metrics: [
       { year: '2022', testingAmount: 2500, certAmount: 900, calibrationAmount: 1200, devAmount: 600, trainingAmount: 300 },
-      { year: '2023', testingAmount: 4100, certAmount: 1800, calibrationAmount: 2100, devAmount: 950, trainingAmount: 450 }
+      { year: '2023', testingAmount: 4100, certAmount: 1800, calibrationAmount: 2100, devAmount: 950, trainingAmount: 450 },
+      { year: '2024', testingAmount: 5200, certAmount: 2350, calibrationAmount: 2800, devAmount: 1250, trainingAmount: 620 }
     ],
     deptContributions: [
       { name: '元器件检测所 (多晶圆筛选)', ratio: 45, amount: 1800 },
@@ -280,7 +283,8 @@ export const COMP_MOCK_LIST: Company[] = [
     saibaoCooperationSummary: '本司作为工业和信息化部电子第五研究所（赛宝实验室）的产业化智能科技开发实体，负责全流程数字化营销体系、多层级业务大盘和AI智能分析系统的集成交付。承担了与华为集团、中国电科、比亚迪等核心企业之间的大型业务对接，是赛宝外部合作数字化连接的主轴承枢纽。',
     metrics: [
       { year: '2022', testingAmount: 4500, certAmount: 2100, calibrationAmount: 1540, devAmount: 1890, trainingAmount: 890 },
-      { year: '2023', testingAmount: 5120, certAmount: 2450, calibrationAmount: 1820, devAmount: 2310, trainingAmount: 1100 }
+      { year: '2023', testingAmount: 5120, certAmount: 2450, calibrationAmount: 1820, devAmount: 2310, trainingAmount: 1100 },
+      { year: '2024', testingAmount: 5890, certAmount: 2880, calibrationAmount: 2150, devAmount: 2750, trainingAmount: 1380 }
     ],
     deptContributions: [
       { name: '元器件与材料可靠性模块', ratio: 40, amount: 2500 },

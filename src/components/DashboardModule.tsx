@@ -6,20 +6,23 @@
 import React, { useState } from 'react';
 import { Company, GroupData } from '../types';
 import { COMP_MOCK_LIST, CONTRACTS_SUMMARY } from '../data/mockData';
-import { 
-  TrendingUp, 
-  Layers, 
-  Briefcase, 
-  Users, 
-  Building, 
-  ArrowRight, 
-  Activity, 
+import {
+  TrendingUp,
+  Layers,
+  Briefcase,
+  Users,
+  Building,
+  ArrowRight,
+  Activity,
   ExternalLink,
   Check,
   Plus,
   Trash2,
   Lock,
-  ChevronRight
+  ChevronRight,
+  DollarSign,
+  BarChart3,
+  AlertTriangle
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -106,80 +109,433 @@ export default function DashboardModule({
         </div>
       </div>
 
-      {/* KPI Card Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* KPI 1 */}
-        <div id="kpi-card-1" className="bg-white rounded-xl p-5 border border-slate-100 shadow-xs hover:border-indigo-100 transition duration-300">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-slate-500">赛宝年度累计签约额</span>
-            <span className="flex items-center gap-0.5 text-xs font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-sm">
-              <TrendingUp className="h-3 w-3" />
-              {CONTRACTS_SUMMARY.comparisonYoY}
-            </span>
+      {/* KPI Card Grid - 3 Core Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* KPI 1: 合同总额 */}
+        <div className="bg-gradient-to-br from-indigo-50 to-white rounded-xl p-4 border border-indigo-100">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 bg-indigo-100 rounded-lg">
+              <DollarSign className="h-4 w-4 text-indigo-600" />
+            </div>
+            <div>
+              <h4 className="font-semibold text-slate-900 text-sm">合同总额</h4>
+              <p className="text-[10px] text-slate-400">年度累计签约总额</p>
+            </div>
           </div>
-          <div className="mt-2 flex items-baseline gap-1.5">
-            <span className="font-mono text-3xl font-semibold tracking-tight text-slate-900">
+          <div className="text-center my-3">
+            <div className="font-mono text-2xl font-bold text-slate-900">
               {CONTRACTS_SUMMARY.totalAmountBillions}
-            </span>
-            <span className="text-xs text-slate-400">亿元</span>
+            </div>
+            <div className="text-xs text-slate-400 mt-1">亿元</div>
           </div>
-          <div className="mt-1.5 text-xs text-slate-400">
-            同比上年同期增加 <span className="font-mono text-slate-600 font-medium">￥2.26 亿</span>
+          <div className="pt-3 border-t border-indigo-100 flex items-center justify-between text-xs">
+            <span className="text-slate-500">同比增长</span>
+            <span className="font-mono font-bold text-indigo-600">{CONTRACTS_SUMMARY.comparisonYoY}</span>
           </div>
-        </div>
-
-        {/* KPI 2 */}
-        <div id="kpi-card-2" className="bg-white rounded-xl p-5 border border-slate-100 shadow-xs hover:border-indigo-100 transition duration-300">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-slate-500">已开票资金回笼额</span>
-            <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-sm">
-              回收率 25.8%
-            </span>
-          </div>
-          <div className="mt-2 flex items-baseline gap-1.5">
-            <span className="font-mono text-3xl font-semibold tracking-tight text-indigo-700">
-              {CONTRACTS_SUMMARY.billingCompletedBillions}
-            </span>
-            <span className="text-xs text-slate-400">亿元</span>
-          </div>
-          <div className="mt-1.5 text-xs text-slate-400">
-            待到账及中后期批开票额 <span className="font-mono text-indigo-600 font-medium">￥22.5 亿</span>
+          <div className="mt-2 flex items-center gap-1 text-xs text-indigo-600">
+            <TrendingUp className="h-3 w-3" />
+            <span className="font-medium">持续增长</span>
           </div>
         </div>
 
-        {/* KPI 3 */}
-        <div id="kpi-card-3" className="bg-white rounded-xl p-5 border border-slate-100 shadow-xs hover:border-indigo-100 transition duration-300">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-slate-500 font-sans">关键合作大型企业集团</span>
-            <Building className="h-4 w-4 text-slate-400" />
+        {/* KPI 2: 合作客户数 */}
+        <div className="bg-gradient-to-br from-sky-50 to-white rounded-xl p-4 border border-sky-100">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 bg-sky-100 rounded-lg">
+              <Users className="h-4 w-4 text-sky-600" />
+            </div>
+            <div>
+              <h4 className="font-semibold text-slate-900 text-sm">合作客户数</h4>
+              <p className="text-[10px] text-slate-400">当前在合作客户总数</p>
+            </div>
           </div>
-          <div className="mt-2 flex items-baseline gap-1.5">
-            <span className="font-mono text-3xl font-semibold tracking-tight text-slate-900">
-              {COMP_MOCK_LIST.length}
-            </span>
-            <span className="text-xs text-slate-400 font-sans">家主力实体</span>
+          <div className="text-center my-3">
+            <div className="font-mono text-2xl font-bold text-slate-900">
+              12,678
+            </div>
+            <div className="text-xs text-slate-400 mt-1">家企业</div>
           </div>
-          <div className="mt-1.5 text-xs text-slate-400">
-            关联子机构及研究机构达 <span className="font-mono text-slate-600 font-medium">206+</span> 家
+          <div className="pt-3 border-t border-sky-100 flex items-center justify-between text-xs">
+            <span className="text-slate-500">同比增长</span>
+            <span className="font-mono font-bold text-sky-600">{CONTRACTS_SUMMARY.comparisonYoY}</span>
+          </div>
+          <div className="mt-2 flex items-center gap-1 text-xs text-sky-600">
+            <TrendingUp className="h-3 w-3" />
+            <span className="font-medium">持续增长</span>
           </div>
         </div>
 
-        {/* KPI 4 */}
-        <div id="kpi-card-4" className="bg-white rounded-xl p-5 border border-slate-100 shadow-xs hover:border-indigo-100 transition duration-300 bg-gradient-to-br from-indigo-50/20 via-white to-indigo-50/10">
-          <div className="flex items-center justify-between animate-pulse">
-            <span className="text-sm font-medium text-indigo-900">AI 预研大区机会契合度</span>
-            <Activity className="h-4 w-4 text-indigo-500" />
+        {/* KPI 3: 累计合作客户数 */}
+        <div className="bg-gradient-to-br from-rose-50 to-white rounded-xl p-4 border border-rose-100">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 bg-rose-100 rounded-lg">
+              <BarChart3 className="h-4 w-4 text-rose-600" />
+            </div>
+            <div>
+              <h4 className="font-semibold text-slate-900 text-sm">累计合作客户数</h4>
+              <p className="text-[10px] text-slate-400">历史累计合作客户总数</p>
+            </div>
           </div>
-          <div className="mt-2 flex items-baseline gap-1.5">
-            <span className="font-mono text-3xl font-semibold tracking-tight text-slate-900">
-              96.8
-            </span>
-            <span className="text-xs text-indigo-600 font-medium">高评分区</span>
+          <div className="text-center my-3">
+            <div className="font-mono text-2xl font-bold text-slate-900">
+              22,043
+            </div>
+            <div className="text-xs text-slate-400 mt-1">家企业</div>
           </div>
-          <div className="mt-1.5 text-xs text-slate-500">
-            推荐下一季重心：<span className="font-medium text-indigo-700">华南车规芯片</span> 与 <span className="font-medium text-indigo-700">低空航电</span>
+          <div className="pt-3 border-t border-rose-100 flex items-center justify-between text-xs">
+            <span className="text-slate-500">同比增长</span>
+            <span className="font-mono font-bold text-rose-600">+8.06%</span>
+          </div>
+          <div className="mt-2 flex items-center gap-1 text-xs text-rose-600">
+            <TrendingUp className="h-3 w-3" />
+            <span className="font-medium">稳定增长</span>
           </div>
         </div>
+      </div>
+
+      {/* Customer Statistics Cards */}
+      <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-xs">
+        <div className="flex items-center gap-2 mb-4">
+          <Users className="h-5 w-5 text-indigo-600" />
+          <h3 className="font-semibold text-slate-900">客户统计分析</h3>
+          <span className="ml-auto text-xs text-slate-400">统计周期：本年度</span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Card 1: 首次合作金额 */}
+          <div className="bg-gradient-to-br from-emerald-50 to-white rounded-xl p-4 border border-emerald-100">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-2 bg-emerald-100 rounded-lg">
+                <DollarSign className="h-4 w-4 text-emerald-600" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-slate-900 text-sm">首次合作金额</h4>
+                <p className="text-[10px] text-slate-400">本年度新客户合作总额</p>
+              </div>
+            </div>
+            <div className="text-center my-3">
+              <div className="font-mono text-2xl font-bold text-emerald-600">
+                ¥8,420
+              </div>
+              <div className="text-xs text-slate-400 mt-1">万元</div>
+            </div>
+            <div className="pt-3 border-t border-emerald-100 flex items-center justify-between text-xs">
+              <span className="text-slate-500">占总额比例</span>
+              <span className="font-mono font-bold text-emerald-600">27.8%</span>
+            </div>
+            <div className="mt-2 flex items-center gap-1 text-xs text-emerald-600">
+              <TrendingUp className="h-3 w-3" />
+              <span className="font-medium">同比 +12.5%</span>
+            </div>
+          </div>
+
+          {/* Card 2: 首次合作客户数量 */}
+          <div className="bg-gradient-to-br from-blue-50 to-white rounded-xl p-4 border border-blue-100">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Users className="h-4 w-4 text-blue-600" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-slate-900 text-sm">首次合作客户数</h4>
+                <p className="text-[10px] text-slate-400">本年度新签约客户数量</p>
+              </div>
+            </div>
+            <div className="text-center my-3">
+              <div className="font-mono text-2xl font-bold text-blue-600">
+                156
+              </div>
+              <div className="text-xs text-slate-400 mt-1">家企业</div>
+            </div>
+            <div className="pt-3 border-t border-blue-100 flex items-center justify-between text-xs">
+              <span className="text-slate-500">客户总数</span>
+              <span className="font-mono font-bold text-blue-600">12,678家</span>
+            </div>
+            <div className="mt-2 flex items-center gap-1 text-xs text-blue-600">
+              <TrendingUp className="h-3 w-3" />
+              <span className="font-medium">同比 +8.3%</span>
+            </div>
+          </div>
+
+          {/* Card 3: 连续两年未签订合同金额客户统计 */}
+          <div className="bg-gradient-to-br from-amber-50 to-white rounded-xl p-4 border border-amber-100">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-2 bg-amber-100 rounded-lg">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-slate-900 text-sm">流失风险客户</h4>
+                <p className="text-[10px] text-slate-400">连续两年未签订合同客户</p>
+              </div>
+            </div>
+            <div className="text-center my-3">
+              <div className="font-mono text-2xl font-bold text-amber-600">
+                42
+              </div>
+              <div className="text-xs text-slate-400 mt-1">家企业</div>
+            </div>
+            <div className="pt-3 border-t border-amber-100 flex items-center justify-between text-xs">
+              <span className="text-slate-500">涉及金额</span>
+              <span className="font-mono font-bold text-amber-600">¥2,180万</span>
+            </div>
+            <div className="mt-2 flex items-center gap-1 text-xs text-amber-600">
+              <Briefcase className="h-3 w-3" />
+              <span className="font-medium">需重点关注</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* New Analysis Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        {/* Chart 1: 各区域客户合作金额分析 */}
+        <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-xs">
+          <div className="flex items-center justify-between border-b border-slate-50 pb-3 mb-4">
+            <div>
+              <h3 className="font-semibold text-slate-900 text-sm">各区域客户合作金额分析</h3>
+              <p className="text-xs text-slate-400 mt-0.5">单位：亿元 | 百分比</p>
+            </div>
+          </div>
+
+          {/* 区域数据 */}
+          <div className="space-y-3">
+            {[
+              { region: '华东', amount: 28.9, percent: 28.9, color: 'bg-indigo-500' },
+              { region: '华南', amount: 34.3, percent: 34.3, color: 'bg-sky-500' },
+              { region: '华中', amount: 20.0, percent: 9.5, color: 'bg-emerald-500' },
+              { region: '华北', amount: 13.8, percent: 13.8, color: 'bg-cyan-500' },
+              { region: '西南', amount: 4.5, percent: 4.5, color: 'bg-blue-600' },
+              { region: '西北', amount: 6.3, percent: 6.3, color: 'bg-teal-500' },
+              { region: '东北', amount: 2.1, percent: 2.1, color: 'bg-slate-400' }
+            ].map((item, idx) => (
+              <div key={idx} className="space-y-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-medium text-slate-700">{item.region}</span>
+                  <span className="font-mono text-slate-600">
+                    {item.amount}亿元 <span className="text-slate-400">({item.percent}%)</span>
+                  </span>
+                </div>
+                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full ${item.color} rounded-full transition-all duration-700`}
+                    style={{ width: `${item.percent * 2.5}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* 总计 */}
+          <div className="mt-4 pt-3 border-t border-slate-100 text-center">
+            <span className="text-xs text-slate-400">总计合作金额：</span>
+            <span className="font-mono text-lg font-bold text-indigo-600 ml-1">109.9亿元</span>
+          </div>
+        </div>
+
+        {/* Chart 2: 合作客户合同额及客户数量分析 */}
+        <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-xs">
+          <div className="flex items-center justify-between border-b border-slate-50 pb-3 mb-4">
+            <div>
+              <h3 className="font-semibold text-slate-900 text-sm">合作客户合同额及客户数量分析</h3>
+              <p className="text-xs text-slate-400 mt-0.5">单位：亿元 | 个</p>
+            </div>
+            <div className="flex gap-3 text-xs">
+              <span className="flex items-center gap-1">
+                <span className="h-2 w-2 rounded-full bg-indigo-500" />
+                客户合同总额
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="h-2 w-2 rounded-full bg-sky-500" />
+                合作客户数量
+              </span>
+            </div>
+          </div>
+
+          {/* 双轴柱状图 */}
+          <div className="space-y-3">
+            {[
+              { range: '10万以下', amount: 12.8, customers: 333 },
+              { range: '10-100万', amount: 9.8, customers: 302 },
+              { range: '100-500万', amount: 17.8, customers: 232 },
+              { range: '500-1000万', amount: 9.8, customers: 91 },
+              { range: '1000万以上', amount: 13.6, customers: 73 }
+            ].map((item, idx) => (
+              <div key={idx} className="space-y-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-medium text-slate-700">{item.range}</span>
+                  <div className="flex gap-3 text-xs">
+                    <span className="text-indigo-600">¥{item.amount}亿</span>
+                    <span className="text-sky-600">{item.customers}个</span>
+                  </div>
+                </div>
+                <div className="space-y-1 bg-slate-50/50 p-1.5 rounded-md border border-slate-100">
+                  {/* 客户合同总额 */}
+                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-indigo-500 rounded-full transition-all duration-700"
+                      style={{ width: `${(item.amount / 20) * 100}%` }}
+                    />
+                  </div>
+                  {/* 合作客户数量 */}
+                  <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-sky-500 rounded-full transition-all duration-700"
+                      style={{ width: `${(item.customers / 400) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* 注释 */}
+          <div className="mt-4 pt-3 border-t border-slate-100">
+            <p className="text-[10px] text-slate-400 text-center">
+              * 横坐标为客户的合作金额区间值
+            </p>
+          </div>
+        </div>
+
+      </div>
+
+      {/* Business Distribution Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        {/* Chart 3: 业务类型环形图 */}
+        <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-xs">
+          <div className="flex items-center justify-between border-b border-slate-50 pb-3 mb-4">
+            <h3 className="font-semibold text-slate-900 text-sm">业务类型</h3>
+          </div>
+
+          <div className="flex items-center gap-6">
+            {/* 环形图区域 */}
+            <div className="relative w-40 h-40 flex-shrink-0">
+              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                {/* 背景圆环 */}
+                <circle cx="50" cy="50" r="40" fill="none" stroke="#f1f5f9" strokeWidth="12" />
+
+                {/* 数据段 - 检验检测 41.35% */}
+                <circle
+                  cx="50" cy="50" r="40"
+                  fill="none"
+                  stroke="#6366f1"
+                  strokeWidth="12"
+                  strokeDasharray={`${41.35 * 2.513} 251.3`}
+                  strokeDashoffset="0"
+                  className="transition-all duration-1000"
+                />
+
+                {/* 认证评估 16.35% */}
+                <circle
+                  cx="50" cy="50" r="40"
+                  fill="none"
+                  stroke="#06b6d4"
+                  strokeWidth="12"
+                  strokeDasharray={`${16.35 * 2.513} 251.3`}
+                  strokeDashoffset={`-${41.35 * 2.513}`}
+                  className="transition-all duration-1000"
+                />
+
+                {/* 计量校准 14.85% */}
+                <circle
+                  cx="50" cy="50" r="40"
+                  fill="none"
+                  stroke="#10b981"
+                  strokeWidth="12"
+                  strokeDasharray={`${14.85 * 2.513} 251.3`}
+                  strokeDashoffset={`-${(41.35 + 16.35) * 2.513}`}
+                  className="transition-all duration-1000"
+                />
+
+                {/* 产品开发 8.85% */}
+                <circle
+                  cx="50" cy="50" r="40"
+                  fill="none"
+                  stroke="#f97316"
+                  strokeWidth="12"
+                  strokeDasharray={`${8.85 * 2.513} 251.3`}
+                  strokeDashoffset={`-${(41.35 + 16.35 + 14.85) * 2.513}`}
+                  className="transition-all duration-1000"
+                />
+
+                {/* TSQ培训 15.85% */}
+                <circle
+                  cx="50" cy="50" r="40"
+                  fill="none"
+                  stroke="#8b5cf6"
+                  strokeWidth="12"
+                  strokeDasharray={`${15.85 * 2.513} 251.3`}
+                  strokeDashoffset={`-${(41.35 + 16.35 + 14.85 + 8.85) * 2.513}`}
+                  className="transition-all duration-1000"
+                />
+              </svg>
+
+              {/* 中心文字 */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <div className="font-mono text-lg font-bold text-slate-900">30.31</div>
+                <div className="text-[10px] text-slate-400">亿元</div>
+              </div>
+            </div>
+
+            {/* 图例 */}
+            <div className="flex-1 space-y-2">
+              {[
+                { name: '检验检测', amount: '19.87亿', percent: '41.35%', color: 'bg-indigo-500' },
+                { name: '认证、评估', amount: '5.45亿', percent: '16.35%', color: 'bg-sky-500' },
+                { name: '计量校准', amount: '4.86亿', percent: '14.85%', color: 'bg-emerald-500' },
+                { name: '产品开发与销售', amount: '3.21亿', percent: '8.85%', color: 'bg-orange-500' },
+                { name: 'TSQ（含培训）', amount: '5.21亿', percent: '15.85%', color: 'bg-violet-500' }
+              ].map((item, idx) => (
+                <div key={idx} className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className={`h-2 w-2 rounded-full ${item.color}`}></span>
+                    <span className="text-slate-600">{item.name}</span>
+                  </div>
+                  <span className="font-mono text-slate-700">{item.amount} <span className="text-slate-400">({item.percent})</span></span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Chart 4: 业务归属部门条形图 */}
+        <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-xs">
+          <div className="flex items-center justify-between border-b border-slate-50 pb-3 mb-4">
+            <h3 className="font-semibold text-slate-900 text-sm">业务归属部门</h3>
+            <div className="flex gap-1.5">
+              <button className="text-[10px] px-2 py-1 bg-indigo-600 text-white rounded-md">总占比</button>
+              <button className="text-[10px] px-2 py-1 bg-slate-100 text-slate-600 rounded-md">目标占比</button>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {[
+              { name: '元器件与材料板块', amount: 12.5, percent: 25.23 },
+              { name: '装备与整机板块', amount: 9.1, percent: 18.25 },
+              { name: '软件与系统板块', amount: 8.1, percent: 16.54 },
+              { name: '认证中心', amount: 5.1, percent: 10.32 },
+              { name: '计量检测中心', amount: 4.6, percent: 9.58 },
+              { name: '广五所', amount: 4.5, percent: 9.24 },
+              { name: '随春', amount: 4.3, percent: 8.98 }
+            ].map((item, idx) => (
+              <div key={idx} className="space-y-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-medium text-slate-700">{item.name}</span>
+                  <span className="font-mono text-slate-600">
+                    {item.amount}亿 <span className="text-slate-400">({item.percent}%)</span>
+                  </span>
+                </div>
+                <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-indigo-600 to-indigo-400 rounded-full transition-all duration-700"
+                    style={{ width: `${(item.amount / 12.5) * 100}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
       </div>
 
       {/* Intelligent Executive Summary Banner */}
