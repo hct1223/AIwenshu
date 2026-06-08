@@ -58,6 +58,11 @@ export default function EnterpriseModule({
   // State for trend chart interactions
   const [hoveredTrendBarIndex, setHoveredTrendBarIndex] = useState<number | null>(null);
 
+  // State for AI diagnosis
+  const [aiDiagnosisActive, setAiDiagnosisActive] = useState(false);
+  const [aiDiagnosisResult, setAiDiagnosisResult] = useState<any>(null);
+  const [aiDiagnosisLoading, setAiDiagnosisLoading] = useState(false);
+
   // Local lookup for currently managed company
   const currentCompany = COMP_MOCK_LIST.find(c => c.id === activeCompanyId) || COMP_MOCK_LIST[0];
 
@@ -116,6 +121,46 @@ export default function EnterpriseModule({
     setNewContractSummary('');
     setFormError('');
     setShowAddContractForm(false);
+  };
+
+  const handleAiDiagnosis = async () => {
+    setAiDiagnosisLoading(true);
+    setAiDiagnosisActive(true);
+
+    // 模拟AI分析过程
+    setTimeout(() => {
+      const diagnosisResult = {
+        overallHealth: currentCompany.aiScore >= 85 ? '优秀' : currentCompany.aiScore >= 70 ? '良好' : '一般',
+        riskLevel: currentCompany.riskIndex > 15 ? '中等风险' : '低风险',
+        cooperationTrend: activeContractsCount > 5 ? '活跃合作中' : '合作较少',
+        recommendations: [
+          {
+            category: '业务拓展',
+            suggestion: `建议加强在${currentCompany.tags.businessPreference[0] || '核心业务'}领域的深度合作，利用企业在${currentCompany.industry}的行业优势。`
+          },
+          {
+            category: '风险管控',
+            suggestion: currentCompany.riskIndex > 15
+              ? '建议建立季度回访机制，重点关注财务清账和合同履约情况'
+              : '风险较低，建议维持常规客户关系管理'
+          },
+          {
+            category: '关系维护',
+            suggestion: `建议在${new Date().getMonth() + 1}月底前安排一次客户回访，重点跟进${currentCompany.contacts[0]?.name || '相关负责人'}关于新业务合作意向的沟通。`
+          }
+        ],
+        keyMetrics: {
+          creditScore: currentCompany.aiScore,
+          complianceRate: currentCompany.complianceRating,
+          activeContracts: activeContractsCount,
+          totalAmount: totalContractAmount
+        },
+        aiConfidence: 0.92
+      };
+
+      setAiDiagnosisResult(diagnosisResult);
+      setAiDiagnosisLoading(false);
+    }, 2000);
   };
 
   return (
@@ -248,87 +293,122 @@ export default function EnterpriseModule({
             </div>
           </div>
 
-          {/* AI Intelligent Analysis Module */}
-          <div className="bg-gradient-to-br from-indigo-50 to-white rounded-xl p-5 border border-indigo-100 shadow-xs">
-              <div className="flex items-center gap-1.5 border-b border-indigo-100/50 pb-3 mb-4">
+          {/* AI Smart Diagnosis */}
+          <div className="bg-gradient-to-br from-indigo-50 to-white rounded-xl p-4 border border-indigo-100 shadow-xs">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-1.5">
                 <Sparkles className="h-4 w-4 text-indigo-600" />
-                <h4 className="font-semibold text-slate-900 text-sm">AI 智能分析与建议</h4>
+                <h4 className="font-semibold text-slate-900 text-sm">AI 智能诊断</h4>
               </div>
-
-              {/* Overall Situation Analysis */}
-              <div className="mb-4">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Target className="h-3.5 w-3.5 text-indigo-600" />
-                  <h5 className="text-xs font-bold text-slate-800">整体情况分析</h5>
-                </div>
-                <div className="bg-white rounded-lg p-3 border border-slate-100 text-[11px] text-slate-600 leading-relaxed space-y-2">
-                  <p><span className="font-semibold text-slate-800">合作规模：</span>{currentCompany.name}当前与赛宝实验室累计合作金额达<span className="font-mono font-bold text-indigo-600">{totalContractAmount}万元</span>，在研/履行中合约<span className="font-mono font-bold text-emerald-600">{activeContractsCount}份</span>，属于{currentCompany.partnershipLevel}合作伙伴。</p>
-                  <p><span className="font-semibold text-slate-800">信用评级：</span>赛宝AI智能合规信誉度评分为<span className="font-mono font-bold text-indigo-600">{currentCompany.aiScore}分</span>，财务清账及合规表现为<span className="font-mono font-bold text-emerald-600">{currentCompany.complianceRating}%</span>，整体信用状况{currentCompany.aiScore >= 85 ? '优秀' : currentCompany.aiScore >= 70 ? '良好' : '一般'}。</p>
-                  <p><span className="font-semibold text-slate-800">风险指标：</span>近期关联舆情及业务波动风险指数为<span className="font-mono font-bold text-slate-700">{currentCompany.riskIndex}%</span>，{currentCompany.riskIndex > 15 ? '触发中等关注，需要密切监控' : '风险指标极低，合作安全性较高'}。</p>
-                  <p><span className="font-semibold text-slate-800">增长潜力：</span>企业属于{currentCompany.growthCategory}，{currentCompany.tags.coreDivision.join('、')}标签显示其在行业内具备较强{currentCompany.tags.businessPreference[0] || '技术'}优势，建议作为{currentCompany.growthCategory === '高增长类' ? '重点拓展' : '稳定维护'}对象。</p>
-                </div>
-              </div>
-
-              {/* AI Recommendations */}
-              <div>
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Lightbulb className="h-3.5 w-3.5 text-amber-600" />
-                  <h5 className="text-xs font-bold text-slate-800">智能化建议</h5>
-                </div>
-                <div className="space-y-2">
-                  <div className="bg-white rounded-lg p-3 border border-slate-100">
-                    <div className="flex items-start gap-2">
-                      <div className="bg-indigo-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0">
-                        1
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-bold text-slate-800 text-xs mb-1">深化合作关系</div>
-                        <p className="text-slate-500 text-[11px] leading-relaxed">
-                          基于当前{activeContractsCount}份履行中合约，建议重点关注{currentCompany.deptContributions[0]?.name || '元器件检测所'}的业务拓展，利用企业在{currentCompany.tags.businessPreference[0] || '技术'}领域的优势，制定专项合作方案。
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="bg-white rounded-lg p-3 border border-slate-100">
-                    <div className="flex items-start gap-2">
-                      <div className="bg-indigo-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0">
-                        2
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-bold text-slate-800 text-xs mb-1">风险监控与预警</div>
-                        <p className="text-slate-500 text-[11px] leading-relaxed">
-                          当前风险指数为{currentCompany.riskIndex}%，{currentCompany.riskIndex > 15 ? '建议建立季度回访机制，重点关注财务清账和合同履约情况' : '风险较低，建议维持常规客户关系管理'}。
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="bg-white rounded-lg p-3 border border-slate-100">
-                    <div className="flex items-start gap-2">
-                      <div className="bg-indigo-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0">
-                        3
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-bold text-slate-800 text-xs mb-1">业务拓展机会</div>
-                        <p className="text-slate-500 text-[11px] leading-relaxed">
-                          企业在{currentCompany.industry}领域表现突出，结合赛宝实验室在计量校准、软件评测等方面的优势，可探索{currentCompany.tags.businessPreference[1] || '新兴业务'}合作机会。
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-100">
-                    <div className="flex items-start gap-2">
-                      <Info className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
-                      <div>
-                        <div className="font-bold text-indigo-900 text-xs mb-1">关键提醒</div>
-                        <p className="text-indigo-700 text-[11px] leading-relaxed">
-                          建议在{new Date().getMonth() + 1}月底前安排一次客户回访，重点跟进{currentCompany.contacts[0]?.name || '相关负责人'}关于新业务合作意向的沟通，同时关注行业政策变化对企业需求的影响。
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              {!aiDiagnosisActive && (
+                <button
+                  onClick={handleAiDiagnosis}
+                  className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-1.5 px-3 rounded-md transition shadow-xs flex items-center gap-1"
+                >
+                  <Sparkles className="h-3 w-3" />
+                  开始诊断
+                </button>
+              )}
             </div>
+
+            {aiDiagnosisLoading && (
+              <div className="bg-white rounded-lg p-4 border border-slate-100 text-center">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="relative w-12 h-12">
+                    <div className="absolute inset-0 border-4 border-indigo-200 rounded-full"></div>
+                    <div className="absolute inset-0 border-4 border-indigo-600 rounded-full border-t-transparent animate-spin"></div>
+                  </div>
+                  <div className="text-xs text-slate-600">
+                    <p className="font-medium">AI 正在分析企业数据...</p>
+                    <p className="text-slate-400 mt-1">评估信用状况、合作潜力、风险指标</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {aiDiagnosisResult && !aiDiagnosisLoading && (
+              <div className="space-y-3 animate-fadeIn">
+                {/* Diagnosis Summary */}
+                <div className="bg-white rounded-lg p-3 border border-slate-100">
+                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">诊断概要</div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">整体状况:</span>
+                      <span className={`font-semibold ${aiDiagnosisResult.overallHealth === '优秀' ? 'text-emerald-600' : aiDiagnosisResult.overallHealth === '良好' ? 'text-indigo-600' : 'text-amber-600'}`}>
+                        {aiDiagnosisResult.overallHealth}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">风险等级:</span>
+                      <span className={`font-semibold ${aiDiagnosisResult.riskLevel === '低风险' ? 'text-emerald-600' : 'text-amber-600'}`}>
+                        {aiDiagnosisResult.riskLevel}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">合作状态:</span>
+                      <span className="font-semibold text-indigo-600">{aiDiagnosisResult.cooperationTrend}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">AI可信度:</span>
+                      <span className="font-semibold text-slate-700">{(aiDiagnosisResult.aiConfidence * 100).toFixed(0)}%</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Key Metrics */}
+                <div className="bg-white rounded-lg p-3 border border-slate-100">
+                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">关键指标</div>
+                  <div className="space-y-1.5 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">信用评分:</span>
+                      <span className="font-mono font-bold text-indigo-600">{aiDiagnosisResult.keyMetrics.creditScore}分</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">合规率:</span>
+                      <span className="font-mono font-bold text-emerald-600">{aiDiagnosisResult.keyMetrics.complianceRate}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">活跃合同:</span>
+                      <span className="font-mono font-bold text-slate-700">{aiDiagnosisResult.keyMetrics.activeContracts}份</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">合作总额:</span>
+                      <span className="font-mono font-bold text-slate-700">{aiDiagnosisResult.keyMetrics.totalAmount}万</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Recommendations */}
+                <div className="bg-white rounded-lg p-3 border border-slate-100">
+                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">智能建议</div>
+                  <div className="space-y-2">
+                    {aiDiagnosisResult.recommendations.map((rec: any, idx: number) => (
+                      <div key={idx} className="text-xs">
+                        <div className="font-semibold text-indigo-700 mb-1">{rec.category}</div>
+                        <p className="text-slate-600 text-[11px] leading-relaxed">{rec.suggestion}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Re-diagnosis Button */}
+                <button
+                  onClick={handleAiDiagnosis}
+                  className="w-full text-center text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium py-2 rounded-lg transition border border-indigo-200"
+                >
+                  重新诊断
+                </button>
+              </div>
+            )}
+
+            {!aiDiagnosisActive && !aiDiagnosisLoading && !aiDiagnosisResult && (
+              <div className="text-center py-4 text-xs text-slate-500">
+                <Sparkles className="h-8 w-8 mx-auto text-indigo-300 mb-2" />
+                <p>点击"开始诊断"按钮</p>
+                <p className="text-slate-400 mt-1">AI将全面分析企业信用、合作潜力、风险状况</p>
+              </div>
+            )}
+          </div>
 
         </div>
 

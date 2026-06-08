@@ -37,6 +37,11 @@ export default function GroupModule({ activeGroupId, onNavigateToCompany }: Grou
   // Hover state for business type popup
   const [hoveredBusiness, setHoveredBusiness] = useState<string | null>(null);
 
+  // State for AI diagnosis
+  const [aiDiagnosisActive, setAiDiagnosisActive] = useState(false);
+  const [aiDiagnosisResult, setAiDiagnosisResult] = useState<any>(null);
+  const [aiDiagnosisLoading, setAiDiagnosisLoading] = useState(false);
+
   // 定义业务类型的子级业务数据
   const businessSubTypes = {
     '元器件检测与筛分': [
@@ -84,6 +89,49 @@ export default function GroupModule({ activeGroupId, onNavigateToCompany }: Grou
         onNavigateToCompany(defaultComps[0].id);
       }
     }
+  };
+
+  const handleAiDiagnosis = async () => {
+    setAiDiagnosisLoading(true);
+    setAiDiagnosisActive(true);
+
+    // 模拟AI分析过程
+    setTimeout(() => {
+      const diagnosisResult = {
+        overallHealth: activeGroup.aiPotentialScore >= 95 ? '优秀' : activeGroup.aiPotentialScore >= 85 ? '良好' : '一般',
+        riskLevel: activeGroup.riskHighlights.length > 0 ? '存在风险预警' : '低风险',
+        cooperationTrend: activeGroup.partneredCompanies > 10 ? '深度合作' : '初步合作',
+        recommendations: [
+          {
+            category: '集团战略拓展',
+            suggestion: `该集团拥有${activeGroup.totalSubCompanies}家子公司，当前合作渗透率${((activeGroup.partneredCompanies / activeGroup.totalSubCompanies) * 100).toFixed(1)}%，建议制定集团级战略合作框架，提升整体渗透率。`
+          },
+          {
+            category: '风险管控',
+            suggestion: activeGroup.riskHighlights.length > 0
+              ? `当前存在${activeGroup.riskHighlights.length}个风险预警，建议建立专项小组跟进，重点关注：${activeGroup.riskHighlights[0]?.title || '部分子公司合作频度下降'}`
+              : '集团整体运营稳定，建议维持常规客户关系管理，定期跟进重要子公司业务动态'
+          },
+          {
+            category: '业务机会',
+            suggestion: activeGroup.recommendationPaths.length > 0
+              ? `AI推荐路径：${activeGroup.recommendationPaths[0]?.title || '建立集团级战略合作框架'}，${activeGroup.recommendationPaths[0]?.description || ''}`
+              : '建议探索集团在新兴业务领域的合作机会，特别是在AI智能应用、数字化转型等前沿技术领域'
+          }
+        ],
+        keyMetrics: {
+          aiScore: activeGroup.aiPotentialScore,
+          totalCompanies: activeGroup.totalSubCompanies,
+          partneredCompanies: activeGroup.partneredCompanies,
+          penetrationRate: ((activeGroup.partneredCompanies / activeGroup.totalSubCompanies) * 100).toFixed(1),
+          riskCount: activeGroup.riskHighlights.length
+        },
+        aiConfidence: 0.89
+      };
+
+      setAiDiagnosisResult(diagnosisResult);
+      setAiDiagnosisLoading(false);
+    }, 2000);
   };
 
   return (
@@ -471,107 +519,166 @@ export default function GroupModule({ activeGroupId, onNavigateToCompany }: Grou
 
         </div>
 
-        {/* Column 3 - Intelligent Risk Warnings & Action Trails */}
+        {/* Column 3 - AI Smart Diagnosis */}
         <div className="space-y-6">
-          
-          {/* Risk Alert Panel */}
-          <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-xs">
-            <div className="flex items-center gap-1.5 border-b border-slate-50 pb-3 mb-4">
-              <AlertTriangle className="h-4 w-4 text-rose-500" />
-              <h4 className="font-semibold text-slate-900 text-sm">集团智能预警与风险警示</h4>
-            </div>
-
-            <div className="space-y-3.5">
-              {activeGroup.riskHighlights.map((risk, index) => {
-                const isHigh = risk.level === 'high';
-                return (
-                  <div 
-                    key={index} 
-                    className={`p-3.5 rounded-lg border text-xs leading-relaxed space-y-1.5 ${
-                      isHigh 
-                        ? 'bg-rose-50/50 border-rose-100/60 text-slate-700' 
-                        : 'bg-amber-50/40 border-amber-100/60 text-slate-700'
-                    }`}
-                  >
-                    <div className="flex justify-between items-center">
-                      <span className={`inline-flex rounded px-1.5 py-0.5 text-[9px] font-bold uppercase ${
-                        isHigh ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
-                      }`}>
-                        {isHigh ? '高危警钟' : '中度波动'}
-                      </span>
-                      <span className="text-[10px] font-mono text-slate-400">{risk.date}</span>
-                    </div>
-                    <div className="font-bold text-slate-800">{risk.title}</div>
-                    <p className="text-slate-500 text-[11px] leading-relaxed">{risk.description}</p>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="bg-indigo-50/40 rounded-lg p-3 border border-indigo-100/50 mt-4 text-[11px] text-slate-600 space-y-1">
-              <div className="font-bold text-indigo-900 flex items-center gap-1">
-                <AlertCircle className="h-3.5 w-3.5 text-indigo-600" />
-                赛宝预警防波指令
-              </div>
-              <p className="text-slate-500 leading-relaxed text-[10px]">
-                该集团风险系数评分较前月浮升 <span className="font-bold font-mono text-slate-700">1.2%</span>。建议指派华南技推专员于 Q2 结束前实施至少一轮“高低温循环可靠性标对宣讲”。
-              </p>
-            </div>
-          </div>
-
-          {/* AI Intelligent Analysis Module */}
+          {/* AI Smart Diagnosis */}
           <div className="bg-gradient-to-br from-indigo-50 to-white rounded-xl p-5 border border-indigo-100 shadow-xs">
-            <div className="flex items-center gap-1.5 border-b border-indigo-100/50 pb-3 mb-4">
-              <Sparkles className="h-4 w-4 text-indigo-600" />
-              <h4 className="font-semibold text-slate-900 text-sm">AI 智能分析与建议</h4>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-1.5">
+                <Sparkles className="h-4 w-4 text-indigo-600" />
+                <h4 className="font-semibold text-slate-900 text-sm">AI 智能诊断</h4>
+              </div>
+              {!aiDiagnosisActive && (
+                <button
+                  onClick={handleAiDiagnosis}
+                  className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-1.5 px-3 rounded-md transition shadow-xs flex items-center gap-1"
+                >
+                  <Sparkles className="h-3 w-3" />
+                  开始诊断
+                </button>
+              )}
             </div>
 
-            {/* Overall Situation Analysis */}
-            <div className="mb-4">
-              <div className="flex items-center gap-1.5 mb-2">
-                <Target className="h-3.5 w-3.5 text-indigo-600" />
-                <h5 className="text-xs font-bold text-slate-800">整体情况分析</h5>
-              </div>
-              <div className="bg-white rounded-lg p-3 border border-slate-100 text-[11px] text-slate-600 leading-relaxed space-y-2">
-                <p><span className="font-semibold text-slate-800">合作规模：</span>{activeGroup.name}当前与赛宝实验室合作的机构数量达<span className="font-mono font-bold text-indigo-600">{activeGroup.partneredCompanies}</span>家，集团整体渗透率达到<span className="font-mono font-bold text-emerald-600">{((activeGroup.partneredCompanies / activeGroup.totalSubCompanies) * 100).toFixed(1)}%</span>，在同类集团中处于{activeGroup.growthCategory === '高增长类' ? '领先' : '稳健'}水平。</p>
-                <p><span className="font-semibold text-slate-800">业务分布：</span>主要合作集中在元器件检测与筛分（35%）、可靠性试验认证（28%）和计量校准服务（20%），业务结构较为均衡，技术覆盖面广。</p>
-                <p><span className="font-semibold text-slate-800">风险评估：</span>当前存在{activeGroup.riskHighlights.length}个中等风险预警，主要集中在部分子公司合作频度下降和外部竞争压力增加方面，需要加强客户关系维护。</p>
-                <p><span className="font-semibold text-slate-800">潜力评估：</span>AI综合评分为<span className="font-mono font-bold text-indigo-600">{activeGroup.aiPotentialScore}</span>分，具备{activeGroup.growthCategory === '高增长类' ? '高增长潜力' : '稳定发展基础'}，建议作为重点跟进对象。</p>
-              </div>
-            </div>
-
-            {/* AI Recommendations */}
-            <div>
-              <div className="flex items-center gap-1.5 mb-2">
-                <Lightbulb className="h-3.5 w-3.5 text-amber-600" />
-                <h5 className="text-xs font-bold text-slate-800">智能化建议</h5>
-              </div>
-              <div className="space-y-2">
-                {activeGroup.recommendationPaths.map((rec, idx) => (
-                  <div key={rec.step} className="bg-white rounded-lg p-3 border border-slate-100">
-                    <div className="flex items-start gap-2">
-                      <div className="bg-indigo-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0">
-                        {idx + 1}
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-bold text-slate-800 text-xs mb-1">{rec.title}</div>
-                        <p className="text-slate-500 text-[11px] leading-relaxed">{rec.description}</p>
-                      </div>
-                    </div>
+            {aiDiagnosisLoading && (
+              <div className="bg-white rounded-lg p-4 border border-slate-100 text-center">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="relative w-12 h-12">
+                    <div className="absolute inset-0 border-4 border-indigo-200 rounded-full"></div>
+                    <div className="absolute inset-0 border-4 border-indigo-600 rounded-full border-t-transparent animate-spin"></div>
                   </div>
-                ))}
-                <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-100">
-                  <div className="flex items-start gap-2">
-                    <Info className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
-                    <div>
-                      <div className="font-bold text-indigo-900 text-xs mb-1">关键提醒</div>
-                      <p className="text-indigo-700 text-[11px] leading-relaxed">
-                        该集团风险系数评分较前月浮升1.2%。建议指派华南技推专员于Q2结束前实施至少一轮"高低温循环可靠性标对宣讲"，重点关注风险预警中的3家子公司。
-                      </p>
-                    </div>
+                  <div className="text-xs text-slate-600">
+                    <p className="font-medium">AI 正在分析集团数据...</p>
+                    <p className="text-slate-400 mt-1">评估整体状况、风险预警、合作潜力</p>
                   </div>
                 </div>
               </div>
+            )}
+
+            {aiDiagnosisResult && !aiDiagnosisLoading && (
+              <div className="space-y-3 animate-fadeIn">
+                {/* Diagnosis Summary */}
+                <div className="bg-white rounded-lg p-3 border border-slate-100">
+                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">诊断概要</div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">整体状况:</span>
+                      <span className={`font-semibold ${aiDiagnosisResult.overallHealth === '优秀' ? 'text-emerald-600' : aiDiagnosisResult.overallHealth === '良好' ? 'text-indigo-600' : 'text-amber-600'}`}>
+                        {aiDiagnosisResult.overallHealth}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">风险等级:</span>
+                      <span className={`font-semibold ${aiDiagnosisResult.riskLevel === '低风险' ? 'text-emerald-600' : 'text-amber-600'}`}>
+                        {aiDiagnosisResult.riskLevel}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">合作状态:</span>
+                      <span className="font-semibold text-indigo-600">{aiDiagnosisResult.cooperationTrend}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">AI可信度:</span>
+                      <span className="font-semibold text-slate-700">{(aiDiagnosisResult.aiConfidence * 100).toFixed(0)}%</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Key Metrics */}
+                <div className="bg-white rounded-lg p-3 border border-slate-100">
+                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">关键指标</div>
+                  <div className="space-y-1.5 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">AI评分:</span>
+                      <span className="font-mono font-bold text-indigo-600">{aiDiagnosisResult.keyMetrics.aiScore}分</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">子公司总数:</span>
+                      <span className="font-mono font-bold text-slate-700">{aiDiagnosisResult.keyMetrics.totalCompanies}家</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">已合作数量:</span>
+                      <span className="font-mono font-bold text-emerald-600">{aiDiagnosisResult.keyMetrics.partneredCompanies}家</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">渗透率:</span>
+                      <span className="font-mono font-bold text-indigo-600">{aiDiagnosisResult.keyMetrics.penetrationRate}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">风险预警:</span>
+                      <span className="font-mono font-bold text-amber-600">{aiDiagnosisResult.keyMetrics.riskCount}个</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Recommendations */}
+                <div className="bg-white rounded-lg p-3 border border-slate-100">
+                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">智能建议</div>
+                  <div className="space-y-2">
+                    {aiDiagnosisResult.recommendations.map((rec: any, idx: number) => (
+                      <div key={idx} className="text-xs">
+                        <div className="font-semibold text-indigo-700 mb-1">{rec.category}</div>
+                        <p className="text-slate-600 text-[11px] leading-relaxed">{rec.suggestion}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Risk Alerts (if any) */}
+                {activeGroup.riskHighlights.length > 0 && (
+                  <div className="bg-amber-50 rounded-lg p-3 border border-amber-100">
+                    <div className="text-[11px] font-bold text-amber-900 uppercase tracking-wider mb-2">风险预警</div>
+                    <div className="space-y-2">
+                      {activeGroup.riskHighlights.map((risk: any, idx: number) => (
+                        <div key={idx} className="text-xs">
+                          <div className="font-semibold text-amber-800 mb-1">{risk.title}</div>
+                          <p className="text-amber-700 text-[11px] leading-relaxed">{risk.description}</p>
+                          <div className="text-[10px] text-amber-600 mt-1">{risk.date}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Re-diagnosis Button */}
+                <button
+                  onClick={handleAiDiagnosis}
+                  className="w-full text-center text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium py-2 rounded-lg transition border border-indigo-200"
+                >
+                  重新诊断
+                </button>
+              </div>
+            )}
+
+            {!aiDiagnosisActive && !aiDiagnosisLoading && !aiDiagnosisResult && (
+              <div className="text-center py-4 text-xs text-slate-500">
+                <Sparkles className="h-8 w-8 mx-auto text-indigo-300 mb-2" />
+                <p>点击"开始诊断"按钮</p>
+                <p className="text-slate-400 mt-1">AI将全面分析集团整体状况、风险预警、合作潜力</p>
+              </div>
+            )}
+          </div>
+
+          {/* Recommendation Paths (always visible) */}
+          <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-xs">
+            <div className="flex items-center gap-1.5 border-b border-slate-50 pb-3 mb-4">
+              <Target className="h-4 w-4 text-indigo-600" />
+              <h4 className="font-semibold text-slate-900 text-sm">推荐合作路径</h4>
+            </div>
+
+            <div className="space-y-3">
+              {activeGroup.recommendationPaths.map((rec) => (
+                <div key={rec.step} className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+                  <div className="flex items-start gap-2">
+                    <div className="bg-indigo-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0">
+                      {rec.step}
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-bold text-slate-800 text-xs mb-1">{rec.title}</div>
+                      <p className="text-slate-500 text-[11px] leading-relaxed">{rec.description}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 

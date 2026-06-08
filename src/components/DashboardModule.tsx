@@ -22,7 +22,12 @@ import {
   ChevronRight,
   DollarSign,
   BarChart3,
-  AlertTriangle
+  AlertTriangle,
+  Sparkles,
+  Lightbulb,
+  Target,
+  Info,
+  X
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -37,10 +42,88 @@ export default function DashboardModule({
   onNavigateToTab 
 }: DashboardProps) {
   // Enterprise comparison state
-  const [selectedComparisons, setSelectedComparisons] = useState<string[]>(['comp-huawei-tech', 'comp-zte']);
-  const [compSelectorOpen, setCompSelectorOpen] = useState(false);
   const [hoveredTrendIndex, setHoveredTrendIndex] = useState<number | null>(null);
   const [hoveredBarIndex, setHoveredBarIndex] = useState<number | null>(null);
+
+  // Dashboard analysis state
+  const [analysisActive, setAnalysisActive] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+
+  // 处理数据大盘分析
+  const handleDashboardAnalysis = async () => {
+    setAnalysisLoading(true);
+    setAnalysisActive(true);
+
+    // 模拟AI分析过程
+    setTimeout(() => {
+      const totalAmount = parseFloat(CONTRACTS_SUMMARY.totalAmountBillions) * 10000; // 转换为万元
+      const growthRate = parseFloat(CONTRACTS_SUMMARY.comparisonYoY) / 100;
+
+      const analysisData = {
+        overview: {
+          totalAmount: Math.round(totalAmount),
+          growthRate: growthRate,
+          activeClients: 12678,
+          avgContractValue: Math.round(totalAmount / 12678),
+          marketPosition: '行业领先'
+        },
+        keyFindings: [
+          {
+            category: '业务增长',
+            trend: '强劲上升',
+            summary: `合同总额同比增长${CONTRACTS_SUMMARY.comparisonYoY}，处于稳健增长通道`,
+            insight: 'Q2季度表现超预期，预计全年可实现15%以上的增长目标'
+          },
+          {
+            category: '客户结构',
+            trend: '优化升级',
+            summary: '战略级客户合作深度持续提升，头部客户贡献占比超过65%',
+            insight: '建议重点维护TOP20客户，同时关注腰部客户的成长潜力'
+          },
+          {
+            category: '业务分布',
+            trend: '均衡发展',
+            summary: '元器件检测、可靠性试验、计量校准三大支柱业务均衡发展',
+            insight: '软件测试和低空经济业务增长迅速，建议加大相关领域投入'
+          }
+        ],
+        riskAnalysis: {
+          overallRisk: '低风险',
+          riskFactors: [
+            { level: 'low', issue: '整体业务风险可控，财务状况良好' },
+            { level: 'medium', issue: '部分区域市场竞争加剧，需关注价格压力' },
+            { level: 'low', issue: '客户集中度适中，单一客户依赖风险较低' }
+          ]
+        },
+        recommendations: [
+          {
+            priority: '高',
+            title: '深化头部客户合作',
+            description: '针对AI评分≥90的头部客户，制定专项深化合作方案，提升单客户贡献度'
+          },
+          {
+            priority: '中',
+            title: '拓展新兴业务领域',
+            description: '抓住低空经济、AI软件测试等新兴业务机遇，抢占市场先机'
+          },
+          {
+            priority: '高',
+            title: '优化区域布局',
+            description: '加强华东、华北等重点区域的业务拓展，平衡区域业务分布'
+          }
+        ],
+        forecast: {
+          nextQuarter: '预计Q3合同额可达8.5亿元，环比增长12%',
+          annualTarget: '全年目标完成概率92%，建议提前准备Q4冲刺计划',
+          marketOutlook: '行业整体需求旺盛，预计下半年市场空间将进一步释放'
+        }
+      };
+
+      setAnalysisResult(analysisData);
+      setAnalysisLoading(false);
+    }, 2500);
+  };
 
   // Line Trend data (12 months overview of contract amounts in 10k yuan unit)
   const trendData = [
@@ -67,20 +150,6 @@ export default function DashboardModule({
     { name: 'TSQ职业技能评估', val2022: 8.9, val2023: 11.4 }
   ];
 
-  const handleToggleComparison = (id: string) => {
-    if (selectedComparisons.includes(id)) {
-      setSelectedComparisons(prev => prev.filter(item => item !== id));
-    } else {
-      if (selectedComparisons.length >= 4) {
-        alert('为了保证对比图表的易读性，最多同时对比 4 家企业');
-        return;
-      }
-      setSelectedComparisons(prev => [...prev, id]);
-    }
-  };
-
-  const currentComparingCompanies = COMP_MOCK_LIST.filter(c => selectedComparisons.includes(c.id));
-
   return (
     <div className="space-y-6">
       {/* Dynamic Header Badge Row */}
@@ -98,16 +167,193 @@ export default function DashboardModule({
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
             全区数据实时贯通
           </span>
-          <button 
-            id="btn-goto-ai"
-            onClick={() => onNavigateToTab('aiQuery')} 
+          <button
+            id="btn-goto-ai-chat"
+            onClick={() => onNavigateToTab('aiChat')}
             className="inline-flex items-center gap-1 rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-xs hover:bg-indigo-700 transition"
           >
-            AI 智能问数对话
+            AI 智能对话
             <ChevronRight className="h-3 w-3" />
+          </button>
+          <button
+            id="btn-dashboard-analysis"
+            onClick={handleDashboardAnalysis}
+            className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white shadow-xs hover:bg-emerald-700 transition"
+          >
+            大盘分析
+            <Sparkles className="h-3 w-3" />
           </button>
         </div>
       </div>
+
+      {/* Dashboard Analysis Results */}
+      {analysisActive && (
+        <div className="bg-gradient-to-br from-emerald-50 to-white rounded-xl p-5 border border-emerald-100 shadow-xs">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-emerald-600" />
+              <h3 className="font-semibold text-slate-900 text-sm">数据大盘智能分析</h3>
+              <span className="bg-emerald-50 text-emerald-700 text-[10px] px-2 py-0.5 rounded-full font-semibold border border-emerald-100">
+                AI驱动
+              </span>
+            </div>
+            <button
+              onClick={() => setAnalysisActive(false)}
+              className="text-slate-400 hover:text-slate-600 transition"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {analysisLoading ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <div className="relative w-12 h-12 mb-3">
+                <div className="absolute inset-0 border-4 border-emerald-200 rounded-full"></div>
+                <div className="absolute inset-0 border-4 border-emerald-600 rounded-full border-t-transparent animate-spin"></div>
+              </div>
+              <p className="text-sm text-slate-600">AI 正在深度分析大盘数据...</p>
+              <p className="text-xs text-slate-400 mt-1">评估业务趋势、风险指标、增长机会</p>
+            </div>
+          ) : analysisResult ? (
+            <div className="space-y-4 animate-fadeIn">
+              {/* 总体概览 */}
+              <div className="bg-white rounded-lg p-4 border border-slate-100">
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">总体概览</div>
+                <div className="grid grid-cols-4 gap-3">
+                  <div className="text-center">
+                    <div className="font-mono text-lg font-bold text-indigo-600">{analysisResult.overview.totalAmount}万</div>
+                    <div className="text-[10px] text-slate-400">合作总额</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-mono text-lg font-bold text-emerald-600">{(analysisResult.overview.growthRate * 100).toFixed(1)}%</div>
+                    <div className="text-[10px] text-slate-400">增长率</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-mono text-lg font-bold text-slate-700">{analysisResult.overview.activeClients.toLocaleString()}</div>
+                    <div className="text-[10px] text-slate-400">活跃客户</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-mono text-lg font-bold text-amber-600">{(analysisResult.overview.avgContractValue / 10000).toFixed(1)}亿</div>
+                    <div className="text-[10px] text-slate-400">户均合同</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 关键发现 */}
+              <div className="bg-white rounded-lg p-4 border border-slate-100">
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                  <Target className="h-3.5 w-3.5 text-indigo-600" />
+                  关键发现
+                </div>
+                <div className="space-y-3">
+                  {analysisResult.keyFindings.map((finding: any, idx: number) => (
+                    <div key={idx} className="flex items-start gap-3">
+                      <div className={`h-2 w-2 rounded-full mt-1.5 ${
+                        finding.trend === '强劲上升' ? 'bg-emerald-500' :
+                        finding.trend === '优化升级' ? 'bg-indigo-500' :
+                        'bg-amber-500'
+                      }`}></div>
+                      <div className="flex-1">
+                        <div className="text-xs font-semibold text-slate-800 mb-1">{finding.category} · {finding.trend}</div>
+                        <p className="text-[11px] text-slate-600 leading-relaxed">{finding.summary}</p>
+                        <p className="text-[10px] text-slate-500 mt-1">{finding.insight}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 风险分析 */}
+              <div className="bg-white rounded-lg p-4 border border-slate-100">
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">风险分析</div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xs font-medium text-slate-600">整体风险等级:</span>
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
+                    analysisResult.riskAnalysis.overallRisk === '低风险' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                  }`}>
+                    {analysisResult.riskAnalysis.overallRisk}
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  {analysisResult.riskAnalysis.riskFactors.map((factor: any, idx: number) => (
+                    <div key={idx} className="flex items-center gap-2 text-xs">
+                      <div className={`h-1.5 w-1.5 rounded-full ${
+                        factor.level === 'low' ? 'bg-emerald-500' :
+                        factor.level === 'medium' ? 'bg-amber-500' :
+                        'bg-rose-500'
+                      }`}></div>
+                      <span className="text-slate-600">{factor.issue}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 智能建议 */}
+              <div className="bg-white rounded-lg p-4 border border-slate-100">
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                  <Lightbulb className="h-3.5 w-3.5 text-amber-600" />
+                  智能建议
+                </div>
+                <div className="space-y-3">
+                  {analysisResult.recommendations.map((rec: any, idx: number) => (
+                    <div key={idx} className="flex items-start gap-3">
+                      <div className={`h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5 ${
+                        rec.priority === '高' ? 'bg-rose-500 text-white' :
+                        rec.priority === '中' ? 'bg-amber-500 text-white' :
+                        'bg-slate-400 text-white'
+                      }`}>
+                        {rec.priority === '高' ? '高' : rec.priority === '中' ? '中' : '低'}
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-bold text-slate-800 text-xs mb-1">{rec.title}</div>
+                        <p className="text-slate-500 text-[11px] leading-relaxed">{rec.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 预测展望 */}
+              <div className="bg-gradient-to-br from-indigo-50 to-white rounded-lg p-4 border border-indigo-100">
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                  <TrendingUp className="h-3.5 w-3.5 text-indigo-600" />
+                  预测展望
+                </div>
+                <div className="space-y-2 text-xs">
+                  <div className="flex items-start gap-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-indigo-500 mt-1.5"></div>
+                    <p className="text-slate-600 leading-relaxed">{analysisResult.forecast.nextQuarter}</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 mt-1.5"></div>
+                    <p className="text-slate-600 leading-relaxed">{analysisResult.forecast.annualTarget}</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-sky-500 mt-1.5"></div>
+                    <p className="text-slate-600 leading-relaxed">{analysisResult.forecast.marketOutlook}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 操作按钮 */}
+              <div className="flex justify-center gap-3 pt-2 border-t border-slate-100">
+                <button
+                  onClick={() => setAnalysisActive(false)}
+                  className="px-6 py-2 text-xs bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition"
+                >
+                  返回数据看板
+                </button>
+                <button
+                  onClick={handleDashboardAnalysis}
+                  className="px-6 py-2 text-xs bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
+                >
+                  重新分析
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      )}
 
       {/* KPI Card Grid - 3 Core Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -538,24 +784,6 @@ export default function DashboardModule({
 
       </div>
 
-      {/* Intelligent Executive Summary Banner */}
-      <div id="intelligence-brief-banner" className="bg-slate-900 text-slate-100 rounded-xl p-5 relative overflow-hidden shadow-md">
-        <div className="absolute right-0 bottom-0 translate-x-12 translate-y-12 opacity-10 pointer-events-none">
-          <Layers className="w-64 h-64 text-white" />
-        </div>
-        <div className="relative z-10">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex rounded-full bg-indigo-500/20 text-indigo-300 text-xs px-2.5 py-0.5 border border-indigo-500/30">
-              AI 大模型深度研判
-            </span>
-            <span className="text-slate-400 text-xs">2026年最新批分析反馈</span>
-          </div>
-          <p className="mt-3 text-slate-200 text-sm leading-relaxed antialiased">
-            {CONTRACTS_SUMMARY.smartBrief}
-          </p>
-        </div>
-      </div>
-
       {/* Main Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
@@ -879,84 +1107,6 @@ export default function DashboardModule({
                 })}
               </tbody>
             </table>
-          </div>
-        </div>
-
-        {/* Sidebar Mini Column - Compare Module Toolkit */}
-        <div id="section-comparison-toolkit" className="bg-white rounded-xl p-5 border border-slate-100 shadow-xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between border-b border-slate-50 pb-3 mb-4">
-              <h3 className="font-semibold text-slate-900 text-sm">企业级对比分析舱</h3>
-              <span className="bg-indigo-50 text-indigo-700 text-[10px] px-1.5 py-0.5 font-bold rounded">
-                对比池: {selectedComparisons.length}
-              </span>
-            </div>
-            
-            <p className="text-xs text-slate-500 mb-4 leading-relaxed">
-              选择多主体在 “AI智能评分”、“在审业务总额”、“财务表现” 等维度的指标进行全景式横向对比，帮助决策层直观理解业务偏好差异。
-            </p>
-
-            {/* List of current available options and ticks */}
-            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-              {COMP_MOCK_LIST.map((comp) => {
-                const isSelected = selectedComparisons.includes(comp.id);
-                return (
-                  <div 
-                    key={comp.id} 
-                    onClick={() => handleToggleComparison(comp.id)}
-                    className={`flex items-center justify-between p-2 rounded-lg border text-xs cursor-pointer transition ${
-                      isSelected 
-                        ? 'bg-indigo-50/50 border-indigo-200 text-indigo-900' 
-                        : 'bg-slate-50 border-slate-100 text-slate-600 hover:bg-slate-100/50'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className={`h-4 w-4 rounded border flex items-center justify-center transition-colors ${
-                        isSelected ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-slate-300 bg-white'
-                      }`}>
-                        {isSelected && <Check className="h-3 w-3 stroke-[3]" />}
-                      </div>
-                      <span className="font-semibold truncate max-w-[150px]">{comp.name}</span>
-                    </div>
-                    <span className="font-mono text-[10px] text-slate-500 bg-white px-1 py-0.5 rounded border border-slate-100">
-                      AI评分 {comp.aiScore}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="mt-4 pt-4 border-t border-slate-50">
-            {selectedComparisons.length < 2 ? (
-              <div className="text-[11px] text-amber-600 bg-amber-50 rounded-lg p-2.5 border border-amber-100 text-center">
-                ⚠️ 请至少选择 2 家企业以展示对比对标盘
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="bg-slate-50 rounded-lg p-3 space-y-2 border border-slate-100">
-                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">对标关键指标</div>
-                  {currentComparingCompanies.map(c => {
-                    return (
-                      <div key={c.id} className="flex justify-between items-center text-xs">
-                        <span className="text-slate-600 truncate font-medium max-w-[120px]">{c.name}</span>
-                        <div className="flex items-center gap-2 font-mono">
-                          <span className="text-slate-400 text-[10px]">信用:{c.complianceRating}</span>
-                          <span className="text-indigo-600 font-bold font-sans">{c.aiScore}分</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <button 
-                  id="btn-trigger-deep-comparison"
-                  onClick={() => onNavigateToTab('enterpriseSearch')}
-                  className="w-full text-center text-xs bg-indigo-600 hover:bg-indigo-700 font-medium text-white py-1.5 rounded-lg transition shadow-xs"
-                >
-                  去高级多维筛选 深度探索及对比
-                </button>
-              </div>
-            )}
           </div>
         </div>
 

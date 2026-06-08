@@ -10,7 +10,6 @@ import {
   PieChart,
   CircleUser,
   LayoutDashboard,
-  MessageSquareCode,
   SearchCode,
   User,
   Users,
@@ -18,18 +17,16 @@ import {
   Menu,
   X,
   Sparkles,
-  FileText,
-  Newspaper
+  FileText
 } from 'lucide-react';
 
 import DashboardModule from './components/DashboardModule';
 import GroupModule from './components/GroupModule';
 import GroupListModule from './components/GroupListModule';
 import EnterpriseModule from './components/EnterpriseModule';
+import EnterpriseListModule from './components/EnterpriseListModule';
 import SearchModule from './components/SearchModule';
-import AIQueryModule from './components/AIQueryModule';
 import AIChatSidebar from './components/AIChatSidebar';
-import BusinessReportModule from './components/BusinessReportModule';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
@@ -96,10 +93,19 @@ export default function App() {
             }}
           />
         );
-      case 'aiQuery':
-        return <AIQueryModule />;
-      case 'businessReport':
-        return <BusinessReportModule />;
+      case 'enterpriseManagement':
+        return (
+          <EnterpriseListModule
+            onNavigateToCompany={(id) => {
+              setActiveCompanyId(id);
+              setActiveTab('enterprisePortrait');
+            }}
+            onNavigateToGroup={(id) => {
+              setActiveGroupId(id);
+              setActiveTab('groupPortrait');
+            }}
+          />
+        );
       default:
         return <DashboardModule
           onNavigateToCompany={(id) => {
@@ -120,11 +126,8 @@ export default function App() {
   const navMenuItems = [
     { id: 'aiChat', label: 'AI智能对话', desc: 'AI data analysis chat', icon: Sparkles },
     { id: 'dashboard', label: '数据大盘研判', desc: 'Cockpit overview', icon: LayoutDashboard },
-    { id: 'businessReport', label: '每周动态', desc: 'Weekly dynamics', icon: Newspaper },
-    { id: 'groupPortrait', label: '集团画像', desc: 'Corporate group profiles', icon: Users },
-    { id: 'enterprisePortrait', label: '企业画像', desc: 'Enterprise profile', icon: Building },
+    { id: 'enterpriseManagement', label: '企业管理', desc: 'Enterprise & Group management', icon: Building2 },
     { id: 'enterpriseSearch', label: '企业搜索', desc: 'Enterprise search', icon: SearchCode },
-    { id: 'aiQuery', label: 'AI智能问数决策', desc: 'Visual report center', icon: MessageSquareCode },
   ];
 
   return (

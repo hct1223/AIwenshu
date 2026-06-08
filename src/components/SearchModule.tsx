@@ -27,7 +27,8 @@ import {
   Award,
   Star,
   Target,
-  BarChart3
+  BarChart3,
+  Lightbulb
 } from 'lucide-react';
 
 interface SearchModuleProps {
@@ -135,9 +136,10 @@ export default function SearchModule({ onNavigateToCompany }: SearchModuleProps)
   const [parsedConditions, setParsedConditions] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  // Comparison state
-  const [compareIds, setCompareIds] = useState<string[]>([]);
-  const [comparisonActive, setComparisonActive] = useState(false);
+  // 群画像分析状态
+  const [groupAnalysisActive, setGroupAnalysisActive] = useState(false);
+  const [groupAnalysisResult, setGroupAnalysisResult] = useState<any>(null);
+  const [groupAnalysisLoading, setGroupAnalysisLoading] = useState(false);
 
   // 企业别名映射表
   const COMPANY_ALIASES: Record<string, string[]> = {
@@ -546,18 +548,6 @@ export default function SearchModule({ onNavigateToCompany }: SearchModuleProps)
     setParsedConditions(parseSearchQuery);
   };
 
-  const toggleCompareId = (id: string) => {
-    if (compareIds.includes(id)) {
-      setCompareIds(prev => prev.filter(cId => cId !== id));
-    } else {
-      if (compareIds.length >= 3) {
-        alert('最多支持对比3家企业');
-        return;
-      }
-      setCompareIds(prev => [...prev, id]);
-    }
-  };
-
   const handleClearSearch = () => {
     setSearchQuery('');
     setSearchSuggestions([]);
@@ -602,11 +592,86 @@ export default function SearchModule({ onNavigateToCompany }: SearchModuleProps)
     }
   };
 
+  const handleGroupAnalysis = async () => {
+    setGroupAnalysisLoading(true);
+    setGroupAnalysisActive(true);
+
+    // 模拟AI群画像分析过程
+    setTimeout(() => {
+      const companies = filteredCompanies;
+
+      // 计算群画像数据
+      const totalAmount = companies.reduce((sum, comp) => {
+        const latestMetrics = comp.metrics[comp.metrics.length - 1];
+        return sum + (latestMetrics ? Object.values(latestMetrics).slice(1).reduce((a: number, b: any) => a + (b as number), 0) : 0);
+      }, 0);
+
+      const avgAiScore = companies.reduce((sum, comp) => sum + comp.aiScore, 0) / companies.length;
+
+      const industryDistribution = companies.reduce((acc, comp) => {
+        const industry = comp.industry || '其他';
+        acc[industry] = (acc[industry] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const partnershipDistribution = companies.reduce((acc, comp) => {
+        const level = comp.partnershipLevel || '其他';
+        acc[level] = (acc[level] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const regionDistribution = companies.reduce((acc, comp) => {
+        const tags = comp.tags?.coreDivision || [];
+        tags.forEach((tag: string) => {
+          if (tag.includes('华东') || tag.includes('华南') || tag.includes('华北') || tag.includes('西部')) {
+            const region = tag.replace('：', '').split(' ')[0];
+            acc[region] = (acc[region] || 0) + 1;
+          }
+        });
+        return acc;
+      }, {} as Record<string, number>);
+
+      const highScoreCount = companies.filter(c => c.aiScore >= 90).length;
+      const riskCount = companies.filter(c => c.riskIndex > 15).length;
+
+      const analysisResult = {
+        totalCompanies: companies.length,
+        totalAmount: Math.round(totalAmount),
+        avgAiScore: Math.round(avgAiScore),
+        highScoreCount,
+        riskCount,
+        industryDistribution,
+        partnershipDistribution,
+        regionDistribution,
+        recommendations: [
+          {
+            category: '整体规模',
+            summary: `本次搜索共找到${companies.length}家企业，累计合作金额达${Math.round(totalAmount)}万元，平均AI评分${Math.round(avgAiScore)}分。`,
+            insights: highScoreCount > 0 ? `其中${highScoreCount}家企业AI评分≥90分，建议作为重点拓展对象。` : '企业整体质量良好，建议维护现有合作。'
+          },
+          {
+            category: '行业分布',
+            summary: `企业主要集中在${Object.keys(industryDistribution).slice(0, 3).join('、')}等行业。`,
+            insights: '建议针对优势行业制定专项合作方案，提升行业渗透率。'
+          },
+          {
+            category: '合作机会',
+            summary: riskCount > 0 ? `发现${riskCount}家企业存在一定风险，建议建立预警机制。` : '企业整体风险较低，合作安全性较高。',
+            insights: '建议对高评分企业加大业务拓展力度，对风险企业加强监控。'
+          }
+        ]
+      };
+
+      setGroupAnalysisResult(analysisResult);
+      setGroupAnalysisLoading(false);
+    }, 2000);
+  };
+
   const hasActiveSearch = parsedConditions.length > 0;
 
-  if (comparisonActive) {
-    const comparingCompanies = COMP_MOCK_LIST.filter(c => compareIds.includes(c.id));
-
+  // 对比功能已移除
+  if (false) {
+    const comparingCompanies = [];
     // 计算累计合作金额
     const calculateTotalCooperationAmount = (company: Company) => {
       if (!company.cooperationContracts || company.cooperationContracts.length === 0) {
@@ -990,12 +1055,18 @@ export default function SearchModule({ onNavigateToCompany }: SearchModuleProps)
               </span>
             </div>
             <div className="flex items-center gap-2">
-              {compareIds.length > 0 && (
+              {filteredCompanies.length > 1 && (
                 <button
-                  onClick={() => setComparisonActive(true)}
-                  className="px-4 py-2 text-xs bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+                  onClick={handleGroupAnalysis}
+                  disabled={groupAnalysisLoading}
+                  className={`px-4 py-2 text-xs rounded-lg transition flex items-center gap-1.5 ${
+                    groupAnalysisLoading
+                      ? 'bg-indigo-100 text-indigo-600 cursor-not-allowed'
+                      : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                  }`}
                 >
-                  对比选中 ({compareIds.length})
+                  <Sparkles className="h-3.5 w-3.5" />
+                  {groupAnalysisLoading ? '分析中...' : '群画像分析'}
                 </button>
               )}
               <button
@@ -1041,6 +1112,137 @@ export default function SearchModule({ onNavigateToCompany }: SearchModuleProps)
         </div>
       )}
 
+      {/* 群画像分析结果 */}
+      {groupAnalysisActive && (
+        <div className="bg-gradient-to-br from-indigo-50 to-white rounded-xl p-5 border border-indigo-100 shadow-xs">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-indigo-600" />
+              <h3 className="font-semibold text-slate-900 text-sm">企业群画像分析</h3>
+              <span className="bg-indigo-50 text-indigo-700 text-[10px] px-2 py-0.5 rounded-full font-semibold border border-indigo-100">
+                {filteredCompanies.length}家企业
+              </span>
+            </div>
+            <button
+              onClick={() => setGroupAnalysisActive(false)}
+              className="text-slate-400 hover:text-slate-600 transition"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {groupAnalysisLoading ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <div className="relative w-12 h-12 mb-3">
+                <div className="absolute inset-0 border-4 border-indigo-200 rounded-full"></div>
+                <div className="absolute inset-0 border-4 border-indigo-600 rounded-full border-t-transparent animate-spin"></div>
+              </div>
+              <p className="text-sm text-slate-600">AI 正在分析企业群像...</p>
+            </div>
+          ) : groupAnalysisResult ? (
+            <div className="space-y-4 animate-fadeIn">
+              {/* 总体概览 */}
+              <div className="grid grid-cols-4 gap-3">
+                <div className="bg-white rounded-lg p-3 border border-slate-100 text-center">
+                  <div className="font-mono text-lg font-bold text-indigo-600">{groupAnalysisResult.totalCompanies}</div>
+                  <div className="text-[10px] text-slate-400">企业总数</div>
+                </div>
+                <div className="bg-white rounded-lg p-3 border border-slate-100 text-center">
+                  <div className="font-mono text-lg font-bold text-emerald-600">{groupAnalysisResult.totalAmount}万</div>
+                  <div className="text-[10px] text-slate-400">合作总额</div>
+                </div>
+                <div className="bg-white rounded-lg p-3 border border-slate-100 text-center">
+                  <div className="font-mono text-lg font-bold text-amber-600">{groupAnalysisResult.avgAiScore}分</div>
+                  <div className="text-[10px] text-slate-400">平均评分</div>
+                </div>
+                <div className="bg-white rounded-lg p-3 border border-slate-100 text-center">
+                  <div className="font-mono text-lg font-bold text-rose-600">{groupAnalysisResult.riskCount}家</div>
+                  <div className="text-[10px] text-slate-400">风险企业</div>
+                </div>
+              </div>
+
+              {/* 分布分析 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* 行业分布 */}
+                <div className="bg-white rounded-lg p-3 border border-slate-100">
+                  <h4 className="text-xs font-bold text-slate-700 mb-2">行业分布</h4>
+                  <div className="space-y-1.5">
+                    {Object.entries(groupAnalysisResult.industryDistribution).map(([industry, count]) => (
+                      <div key={industry} className="flex items-center justify-between text-xs">
+                        <span className="text-slate-600 truncate">{industry}</span>
+                        <div className="flex items-center gap-2">
+                          <div className="w-20 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                            <div
+                              className="h-full bg-indigo-500 rounded-full"
+                              style={{ width: `${(count / groupAnalysisResult.totalCompanies) * 100}%` }}
+                            />
+                          </div>
+                          <span className="font-mono text-slate-700 w-8 text-right">{count}家</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 合作级别分布 */}
+                <div className="bg-white rounded-lg p-3 border border-slate-100">
+                  <h4 className="text-xs font-bold text-slate-700 mb-2">合作级别分布</h4>
+                  <div className="space-y-1.5">
+                    {Object.entries(groupAnalysisResult.partnershipDistribution).map(([level, count]) => (
+                      <div key={level} className="flex items-center justify-between text-xs">
+                        <span className="text-slate-600 truncate">{level}</span>
+                        <div className="flex items-center gap-2">
+                          <div className="w-20 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                            <div
+                              className="h-full bg-emerald-500 rounded-full"
+                              style={{ width: `${(count / groupAnalysisResult.totalCompanies) * 100}%` }}
+                            />
+                          </div>
+                          <span className="font-mono text-slate-700 w-8 text-right">{count}家</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 智能建议 */}
+              <div className="bg-white rounded-lg p-4 border border-slate-100">
+                <h4 className="text-xs font-bold text-slate-700 mb-3 flex items-center gap-1.5">
+                  <Lightbulb className="h-3.5 w-3.5 text-amber-600" />
+                  智能分析建议
+                </h4>
+                <div className="space-y-3">
+                  {groupAnalysisResult.recommendations.map((rec: any, idx: number) => (
+                    <div key={idx} className="text-xs">
+                      <div className="font-semibold text-indigo-700 mb-1">{rec.category}</div>
+                      <p className="text-slate-600 leading-relaxed">{rec.summary}</p>
+                      <p className="text-slate-500 mt-1">{rec.insights}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 操作按钮 */}
+              <div className="flex justify-center gap-3 pt-2">
+                <button
+                  onClick={() => setGroupAnalysisActive(false)}
+                  className="px-6 py-2 text-xs bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition"
+                >
+                  返回企业列表
+                </button>
+                <button
+                  onClick={handleGroupAnalysis}
+                  className="px-6 py-2 text-xs bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+                >
+                  重新分析
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      )}
+
       {/* Empty State */}
       {!hasActiveSearch && (
         <div className="bg-white rounded-xl p-12 border border-slate-200 text-center">
@@ -1077,7 +1279,6 @@ export default function SearchModule({ onNavigateToCompany }: SearchModuleProps)
           ) : !isSearching && (
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
               {filteredCompanies.map((comp) => {
-                const isComparing = compareIds.includes(comp.id);
                 const latestMetrics = comp.metrics[comp.metrics.length - 1];
                 const totalAmount = latestMetrics
                   ? Object.values(latestMetrics).slice(1).reduce((a, b) => (a as number) + (b as number), 0) as number
@@ -1088,19 +1289,9 @@ export default function SearchModule({ onNavigateToCompany }: SearchModuleProps)
                     key={comp.id}
                     className="bg-white rounded-xl p-4 border border-slate-200 hover:shadow-lg transition-all"
                   >
-                    {/* Header with Compare Checkbox */}
+                    {/* Header */}
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2 flex-1">
-                        <button
-                          onClick={() => toggleCompareId(comp.id)}
-                          className={`h-5 w-5 rounded border flex items-center justify-center transition-all shrink-0 ${
-                            isComparing
-                              ? 'bg-indigo-600 border-indigo-600 text-white'
-                              : 'border-slate-300 hover:border-slate-400 bg-white'
-                          }`}
-                        >
-                          {isComparing && <Check className="h-3 w-3 stroke-[3]" />}
-                        </button>
                         <img
                           src={comp.logo}
                           alt={comp.name}
@@ -1176,16 +1367,6 @@ export default function SearchModule({ onNavigateToCompany }: SearchModuleProps)
 
                     {/* Actions */}
                     <div className="flex gap-2 pt-2 border-t border-slate-100">
-                      <button
-                        onClick={() => toggleCompareId(comp.id)}
-                        className={`flex-1 px-3 py-2 text-[11px] font-medium rounded-lg transition ${
-                          isComparing
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
-                      >
-                        {isComparing ? '已选' : '对比'}
-                      </button>
                       <button
                         onClick={() => onNavigateToCompany(comp.id)}
                         className="flex-1 px-3 py-2 text-[11px] font-medium rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition"
