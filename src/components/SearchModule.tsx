@@ -35,97 +35,128 @@ interface SearchModuleProps {
   onNavigateToCompany: (id: string) => void;
 }
 
-// 两级搜索标签结构
-const SEARCH_TEMPLATES = [
-  {
-    id: 'time',
-    category: '合作时间',
-    tags: ['2023年合作', '2024年活跃', '近两年新增', '近一年高频', '历史合作']
-  },
-  {
-    id: 'department',
-    category: '主办部门',
-    tags: ['元器件检测所', '低空产业部', '技推处', '软件评测中心', '可靠性试验室', '计量校准所']
-  },
-  {
-    id: 'business',
-    category: '业务类型',
-    tags: ['失效分析', '计量校准', '软件评测', '环境试验', '产品开发', '认证评估', 'TSQ培训']
-  },
-  {
-    id: 'amount',
-    category: '合作金额',
-    tags: ['5000万以上', '1000-5000万', '500-1000万', '100-500万']
-  },
-  {
-    id: 'partnership',
-    category: '合作层级',
-    tags: ['战略级', '核心供应商', '意向重点', '长期合作']
-  },
-  {
-    id: 'growth',
-    category: '增长类别',
-    tags: ['高增长类', '稳健型', '初创潜力']
-  },
-  {
-    id: 'region',
-    category: '地区分布',
-    tags: ['华南地区', '华北地区', '华东地区', '华中地区', '西北地区']
-  },
-  {
-    id: 'score',
-    category: '评分范围',
-    tags: ['AI评分90分以上', 'AI评分80-90分', '合规评分95分以上']
-  },
-  {
-    id: 'risk',
-    category: '风险等级',
-    tags: ['低风险', '风险指数10以下', '稳健经营']
-  },
-  {
-    id: 'tag',
-    category: '企业标签',
-    tags: ['中国百强', '上市企业', '高新技术', '独角兽', '行业龙头', '央企国企']
-  }
-];
-
-// 预设标签组合提示词
-const SEARCH_COMBINATIONS = [
+// 常用搜索提示词
+const COMMON_SEARCHES = [
   {
     id: 'high-value-strategic',
-    title: '高价值战略客户',
+    title: '🎯 高价值战略客户',
     description: '寻找合作金额高、战略级、高质量的企业',
     keywords: '5000万以上 战略级 AI评分90分以上 低风险'
   },
   {
     id: 'growth-potential',
-    title: '高增长潜力企业',
+    title: '🚀 高增长潜力企业',
     description: '快速成长、华南地区、高新技术、初创潜力',
     keywords: '高增长类 华南地区 高新技术 初创潜力'
   },
   {
     id: 'stable-partners',
-    title: '稳健长期合作伙伴',
+    title: '🤝 稳健长期合作伙伴',
     description: '合作时间长、稳健型、低风险、计量校准业务',
     keywords: '历史合作 稳健型 低风险 计量校准'
   },
   {
     id: 'tech-innovation',
-    title: '科技创新重点企业',
+    title: '💡 科技创新重点企业',
     description: '软件评测、失效分析、华东地区、上市企业',
     keywords: '软件评测 失效分析 华东地区 上市企业'
   },
   {
     id: 'emerging-markets',
-    title: '新兴市场潜力客户',
+    title: '🌟 新兴市场潜力客户',
     description: '近一年高频、意向重点、华北地区、行业龙头',
     keywords: '近一年高频 意向重点 华北地区 行业龙头'
   },
   {
     id: 'low-aerospace',
-    title: '低空产业专项客户',
+    title: '✈️ 低空产业专项客户',
     description: '低空产业部、环境试验、高增长、华中地区',
     keywords: '低空产业部 环境试验 高增长类 华中地区'
+  },
+  {
+    id: 'semiconductor-leaders',
+    title: '🔧 半导体行业领军企业',
+    description: '芯片、集成电路、华东华南、上市企业、高增长',
+    keywords: '半导体 芯片 集成电路 华东地区 上市企业'
+  },
+  {
+    id: 'automotive-supply',
+    title: '🚗 汽车供应链优质企业',
+    description: '车载、新能源车、汽车电子、华南地区、元器件检测',
+    keywords: '汽车 车载 新能源车 汽车电子 元器件检测'
+  },
+  {
+    id: 'state-owned- giants',
+    title: '🏛️ 央企国企重点客户',
+    description: '央企、国企、大型集团、战略合作、计量校准',
+    keywords: '央企 国企 大型集团 战略合作 计量校准'
+  },
+  {
+    id: 'software-testing',
+    title: '💻 软件测试专项客户',
+    description: '软件评测、代码审计、车规算法、华为、腾讯、字节',
+    keywords: '软件评测 代码审计 车规算法 华为 腾讯'
+  },
+  {
+    id: 'high-growth-clusters',
+    title: '📈 高增长产业集群客户',
+    description: '高增长类、AI评分85+、近一年高频、意向重点',
+    keywords: '高增长类 AI评分85分以上 近一年高频 意向重点'
+  },
+  {
+    id: 'regional-distribution',
+    title: '🗺️ 华东地区优质客户',
+    description: '华东地区、失效分析、环境试验、计量校准、元器件检测',
+    keywords: '华东地区 失效分析 环境试验 计量校准'
+  }
+];
+
+// 搜索模板标签（按维度分类）
+const SEARCH_TEMPLATES = [
+  {
+    id: 'region',
+    category: '地区',
+    tags: ['华南地区', '华东地区', '华北地区', '华中地区', '西北地区', '西南地区']
+  },
+  {
+    id: 'industry',
+    category: '行业',
+    tags: ['汽车', '半导体', '通信', '软件', '航空', '医疗']
+  },
+  {
+    id: 'amount',
+    category: '合作金额',
+    tags: ['5000万以上', '1000万以上', '500-1000万', '大客户', '高价值']
+  },
+  {
+    id: 'partnership',
+    category: '合作层级',
+    tags: ['战略级', '核心供应商', '重要客户']
+  },
+  {
+    id: 'growth',
+    category: '增长类别',
+    tags: ['高增长类', '稳健型', '快速成长', '爆发式增长']
+  },
+  {
+    id: 'risk',
+    category: '风险指数',
+    tags: ['低风险', '安全', '可靠']
+  },
+  {
+    id: 'tag',
+    category: '企业标签',
+    tags: ['上市企业', '高新技术企业', '行业龙头企业', '百强企业']
+  },
+  {
+    id: 'business',
+    category: '业务类型',
+    tags: ['失效分析', '计量校准', '软件评测', '环境试验', '认证评估']
+  },
+  {
+    id: 'time',
+    category: '合作时间',
+    tags: ['2024年活跃', '2023年合作', '近一年', '近两年']
   }
 ];
 
