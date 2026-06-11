@@ -143,3 +143,43 @@ export interface AIInsightReport {
   recommendations: string[];
   visualData: { label: string; value1: number; value2?: number }[];
 }
+
+// 行情速递模块类型定义
+export interface NewsItem {
+  id: string;
+  title: string;
+  type: 'policy' | 'market' | 'tender' | 'hotspot';
+  department: string;
+  publishTime: string;
+  tags: string[];
+  summary: string;
+  content?: string;
+  isCollected?: boolean;
+}
+
+export interface TenderItem extends NewsItem {
+  deadline: string;
+  budget: string;
+  region: string;
+  requirements: string;
+}
+
+export interface ReportConfig {
+  type: 'daily' | 'weekly' | 'monthly';
+  startDate: string;
+  endDate: string;
+  includePolicy: boolean;
+  includeMarket: boolean;
+  includeTender: boolean;
+  includeHotspot: boolean;
+  focusArea: string;
+}
+
+export interface UserPreference {
+  focusIndustries: string[];
+  focusRegions: string[];
+  collectedItems: string[];
+}
+
+export type NewsCategoryType = 'all' | 'policy' | 'market' | 'tender' | 'hotspot' | 'collected';
+export type TimeRangeType = 'today' | 'week' | 'month';
