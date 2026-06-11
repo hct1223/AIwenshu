@@ -5,7 +5,8 @@
 
 import React from 'react';
 import { FileText, TrendingUp, Briefcase, Flame, Folder, Layers } from 'lucide-react';
-import { NewsCategoryType, NEWS_STATS } from '../../data/mockNewsData';
+import { NewsCategoryType } from '../../types';
+import { NEWS_STATS } from '../../data/mockNewsData';
 
 interface CategoryNavProps {
   activeCategory: NewsCategoryType;
