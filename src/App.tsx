@@ -17,7 +17,8 @@ import {
   Menu,
   X,
   Sparkles,
-  FileText
+  FileText,
+  TrendingUp
 } from 'lucide-react';
 
 import DashboardModule from './components/DashboardModule';
@@ -26,6 +27,7 @@ import GroupListModule from './components/GroupListModule';
 import EnterpriseModule from './components/EnterpriseModule';
 import EnterpriseListModule from './components/EnterpriseListModule';
 import SearchModule from './components/SearchModule';
+import NewsFeedModule from './components/NewsFeedModule';
 import AIChatSidebar from './components/AIChatSidebar';
 
 export default function App() {
@@ -106,6 +108,8 @@ export default function App() {
             }}
           />
         );
+      case 'newsFeed':
+        return <NewsFeedModule />;
       default:
         return <DashboardModule
           onNavigateToCompany={(id) => {
@@ -128,6 +132,7 @@ export default function App() {
     { id: 'dashboard', label: '数据大盘研判', desc: 'Cockpit overview', icon: LayoutDashboard },
     { id: 'enterpriseManagement', label: '企业管理', desc: 'Enterprise & Group management', icon: Building2 },
     { id: 'enterpriseSearch', label: '企业搜索', desc: 'Enterprise search', icon: SearchCode },
+    { id: 'newsFeed', label: '行情速递', desc: 'Market intelligence', icon: TrendingUp },
   ];
 
   return (
