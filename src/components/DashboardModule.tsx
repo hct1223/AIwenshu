@@ -34,12 +34,14 @@ interface DashboardProps {
   onNavigateToCompany: (id: string) => void;
   onNavigateToGroup: (id: string) => void;
   onNavigateToTab: (tabId: string) => void;
+  onOpenAIChat?: () => void;
 }
 
-export default function DashboardModule({ 
-  onNavigateToCompany, 
-  onNavigateToGroup, 
-  onNavigateToTab 
+export default function DashboardModule({
+  onNavigateToCompany,
+  onNavigateToGroup,
+  onNavigateToTab,
+  onOpenAIChat
 }: DashboardProps) {
   // Enterprise comparison state
   const [hoveredTrendIndex, setHoveredTrendIndex] = useState<number | null>(null);
@@ -169,7 +171,7 @@ export default function DashboardModule({
           </span>
           <button
             id="btn-goto-ai-chat"
-            onClick={() => onNavigateToTab('aiChat')}
+            onClick={onOpenAIChat}
             className="inline-flex items-center gap-1 rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-xs hover:bg-indigo-700 transition"
           >
             AI 智能对话

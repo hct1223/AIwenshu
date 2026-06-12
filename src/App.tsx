@@ -56,6 +56,7 @@ export default function App() {
             onNavigateToTab={(tabId) => {
               setActiveTab(tabId);
             }}
+            onOpenAIChat={() => setAiChatOpen(true)}
           />
         );
       case 'groupPortrait':
