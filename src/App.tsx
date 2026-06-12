@@ -183,23 +183,15 @@ export default function App() {
                   key={menu.id}
                   id={`sidebar-tab-button-${menu.id}`}
                   onClick={() => {
-                    if (menu.id === 'aiChat') {
-                      setAiChatOpen(!aiChatOpen);
-                    } else {
-                      setActiveTab(menu.id);
-                    }
+                    setActiveTab(menu.id);
                     setMobileMenuOpen(false);
                   }}
                   className={`w-full flex items-center gap-3.5 py-2.5 px-3.5 rounded-lg text-left text-xs font-medium tracking-tight transition duration-150 ${
-                    menu.id === 'aiChat'
-                      ? (aiChatOpen ? 'bg-indigo-650 text-white font-semibold shadow-xs' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40')
-                      : (isActive ? 'bg-indigo-650 text-white font-semibold shadow-xs' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40')
+                    isActive ? 'bg-indigo-650 text-white font-semibold shadow-xs' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
                   }`}
                 >
                   <Icon className={`h-4.5 w-4.5 shrink-0 ${
-                    menu.id === 'aiChat'
-                      ? (aiChatOpen ? 'text-white' : 'text-slate-450')
-                      : (isActive ? 'text-white' : 'text-slate-450')
+                    isActive ? 'text-white' : 'text-slate-450'
                   }`} />
                   <div>
                     <div>{menu.label}</div>
@@ -207,11 +199,6 @@ export default function App() {
                       {menu.desc}
                     </div>
                   </div>
-                  {menu.id === 'aiChat' && (
-                    <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded bg-indigo-600/20 text-indigo-300">
-                      {aiChatOpen ? '展开中' : '点击展开'}
-                    </span>
-                  )}
                 </button>
               );
             })}
