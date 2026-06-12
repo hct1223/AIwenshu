@@ -164,7 +164,6 @@ export default function SearchModule({ onNavigateToCompany }: SearchModuleProps)
   // Search and filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
-  const [parsedConditions, setParsedConditions] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
   // 群画像分析状态
@@ -438,10 +437,10 @@ export default function SearchModule({ onNavigateToCompany }: SearchModuleProps)
     // 如果正在搜索中，返回空数组
     if (isSearching) return [];
     // 如果没有解析条件，返回所有企业
-    if (parsedConditions.length === 0) return COMP_MOCK_LIST;
+    if (parseSearchQuery.length === 0) return COMP_MOCK_LIST;
 
     return COMP_MOCK_LIST.filter(company => {
-      return parsedConditions.every(condition => {
+      return parseSearchQuery.every(condition => {
         switch (condition.type) {
           case 'company':
             // 企业名称过滤（支持别名匹配）
@@ -538,7 +537,7 @@ export default function SearchModule({ onNavigateToCompany }: SearchModuleProps)
         }
       });
     });
-  }, [parsedConditions]);
+  }, [parseSearchQuery]);
 
   // 生成搜索建议
   const generateSuggestions = (input: string) => {
@@ -576,26 +575,22 @@ export default function SearchModule({ onNavigateToCompany }: SearchModuleProps)
     } else {
       setSearchSuggestions([]);
     }
-    setParsedConditions(parseSearchQuery);
   };
 
   const handleClearSearch = () => {
     setSearchQuery('');
     setSearchSuggestions([]);
-    setParsedConditions([]);
   };
 
 
   const handleSuggestionClick = (suggestion: string) => {
     setSearchQuery(suggestion);
     setSearchSuggestions([]);
-    setParsedConditions(parseSearchQuery);
   };
 
   const handleCombinationClick = (keywords: string) => {
     setSearchQuery(keywords);
     setSearchSuggestions([]);
-    setParsedConditions(parseSearchQuery);
   };
 
   const handleTagClick = (tagText: string) => {
@@ -698,7 +693,7 @@ export default function SearchModule({ onNavigateToCompany }: SearchModuleProps)
     }, 2000);
   };
 
-  const hasActiveSearch = parsedConditions.length > 0;
+  const hasActiveSearch = parseSearchQuery.length > 0;
 
   // 对比功能已移除
   if (false) {
@@ -1119,7 +1114,7 @@ export default function SearchModule({ onNavigateToCompany }: SearchModuleProps)
 
           {/* Parsed Conditions */}
           <div className="flex flex-wrap gap-2">
-            {parsedConditions.map((condition, idx) => (
+            {parseSearchQuery.map((condition, idx) => (
               <div
                 key={idx}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium border flex items-center gap-1.5 ${

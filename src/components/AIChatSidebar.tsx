@@ -20,7 +20,11 @@ import {
   Users,
   GitCompare,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  FileText,
+  AlertTriangle,
+  Download,
+  Share2
 } from 'lucide-react';
 import { COMP_MOCK_LIST, GROUP_MOCK_LIST } from '../data/mockData';
 import { Company, GroupData } from '../types';
@@ -30,10 +34,12 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
-  type?: 'text' | 'company-profile' | 'company-comparison' | 'group-profile' | 'group-comparison' | 'statistics' | 'contract-info';
+  type?: 'text' | 'company-profile' | 'company-comparison' | 'group-profile' | 'group-comparison' | 'statistics' | 'contract-info' | 'monthly-report' | 'annual-report';
   companies?: Company[];
   groups?: GroupData[];
   comparisonData?: any;
+  monthlyReportData?: any;
+  annualReportData?: any;
 }
 
 interface AIChatSidebarProps {
@@ -58,63 +64,6 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // 根据当前页面生成推荐话题
-  const getPageSpecificTopics = () => {
-    const topics: { title: string; prompt: string; icon: string }[] = [];
-
-    switch (currentPage) {
-      case 'dashboard':
-        topics.push(
-          { title: '今日数据概览', prompt: '今天新增了多少合作合同？总金额是多少？', icon: '📊' },
-          { title: '高价值客户', prompt: '列出合作金额前5的企业及其基本信息', icon: '💼' },
-          { title: '本月增长趋势', prompt: '本月与上月相比，合作额增长了多少？', icon: '📈' },
-          { title: '风险预警企业', prompt: '有哪些企业风险指数超过15？需要重点关注', icon: '⚠️' }
-        );
-        break;
-      case 'enterpriseSearch':
-        topics.push(
-          { title: '搜索高增长企业', prompt: '找出AI评分90分以上且属于高增长类的企业', icon: '🚀' },
-          { title: '战略客户筛选', prompt: '查找合作金额超过5000万的战略级合作伙伴', icon: '⭐' },
-          { title: '华南地区企业', prompt: '列出华南地区的高新技术企业有哪些？', icon: '🌏' },
-          { title: '低风险供应商', prompt: '找出风险指数低于10且合规评分95以上的企业', icon: '🛡️' }
-        );
-        break;
-      case 'enterprisePortrait':
-        topics.push(
-          { title: '企业画像分析', prompt: '分析当前企业的核心竞争力和合作优势', icon: '🏢' },
-          { title: '合同履约情况', prompt: '查看当前企业的所有合同及履约状态', icon: '📄' },
-          { title: '业务分布', prompt: '展示当前企业与各部门的合作金额分布', icon: '📊' },
-          { title: '增长趋势', prompt: '分析当前企业近三年的业务增长趋势', icon: '📈' }
-        );
-        break;
-      case 'groupSearch':
-        topics.push(
-          { title: '集团整体分析', prompt: '分析集团的整体合作情况和潜力', icon: '🏛️' },
-          { title: '子公司覆盖', prompt: '查看集团下有哪些子公司还未合作', icon: '🔍' },
-          { title: '集团风险预警', prompt: '分析集团近期有哪些风险点需要关注', icon: '⚠️' },
-          { title: '合作建议', prompt: '针对该集团提供下一步合作建议', icon: '💡' }
-        );
-        break;
-      case 'businessReport':
-        topics.push(
-          { title: '生成月度报告', prompt: '生成本月的业务数据报告，包含关键指标', icon: '📋' },
-          { title: '部室业绩对比', prompt: '对比各部门本季度的业绩表现', icon: '🏆' },
-          { title: '客户分析', prompt: '分析本月新增客户和流失客户情况', icon: '👥' },
-          { title: '业务类型分布', prompt: '统计各业务类型的金额占比和增长情况', icon: '📊' }
-        );
-        break;
-      default:
-        topics.push(
-          { title: '企业画像查询', prompt: '查询华为技术的企业画像和合作情况', icon: '🏢' },
-          { title: '合同信息查询', prompt: '查询华为的合同信息和履约状态', icon: '📄' },
-          { title: '企业对比', prompt: '对比华为和中兴的合作情况差异', icon: '⚖️' },
-          { title: '数据分析', prompt: '分析近期的业务数据趋势', icon: '📊' }
-        );
-    }
-
-    return topics;
-  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -237,6 +186,18 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
     return statsKeywords.some(keyword => query.includes(keyword));
   };
 
+  // 检测是否是月报查询
+  const isMonthlyReportQuery = (query: string): boolean => {
+    const reportKeywords = ['月报', '月度报告', '月度报表', '月度经营'];
+    return reportKeywords.some(keyword => query.includes(keyword));
+  };
+
+  // 检测是否是年报查询
+  const isAnnualReportQuery = (query: string): boolean => {
+    const reportKeywords = ['年报', '年度报告', '年度报表', '年度经营', '年度业务'];
+    return reportKeywords.some(keyword => query.includes(keyword));
+  };
+
   // 查询企业合同信息
   const queryContractInfo = (query: string, companies: Company[]): string => {
     if (companies.length === 0) return '';
@@ -333,6 +294,177 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
     return result;
   };
 
+  // 生成月报数据
+  const generateMonthlyReportData = () => {
+    // 模拟当前月份的数据
+    const currentMonth = '2026-06';
+    const currentYear = '2026';
+
+    // 计算本月合作总额
+    const monthlyRevenue = COMP_MOCK_LIST.reduce((sum, company) => {
+      const latestMetrics = company.metrics[company.metrics.length - 1];
+      return sum + (latestMetrics ? Object.values(latestMetrics).slice(1).reduce((a: any, b: any) => a + b, 0) : 0);
+    }, 0);
+
+    // 计算新增合作企业数
+    const newCompaniesCount = Math.floor(COMP_MOCK_LIST.length * 0.1); // 假设10%是新增的
+
+    // 按部门统计本月业绩
+    const deptPerformance = new Map<string, number>();
+    COMP_MOCK_LIST.forEach(company => {
+      company.deptContributions.forEach(dept => {
+        const deptAmount = (monthlyRevenue / COMP_MOCK_LIST.length) * (dept.ratio / 100);
+        deptPerformance.set(dept.name, (deptPerformance.get(dept.name) || 0) + deptAmount);
+      });
+    });
+
+    // 计算增长率
+    const growthRate = 15.8; // 模拟15.8%的增长率
+
+    // 合作客户分析
+    const activeCompanies = COMP_MOCK_LIST.filter(c => {
+      const latestMetrics = c.metrics[c.metrics.length - 1];
+      const totalAmount = latestMetrics ? Object.values(latestMetrics).slice(1).reduce((a: any, b: any) => a + b, 0) : 0;
+      return totalAmount > 100; // 合作金额超过100万视为活跃
+    }).length;
+
+    return {
+      reportInfo: {
+        title: '企业经营情况月报',
+        month: '2026年6月',
+        reportDate: '2026-06-30',
+        reportPeriod: '2026-06-01 至 2026-06-30'
+      },
+      summary: {
+        totalRevenue: Math.round(monthlyRevenue),
+        newCompanies: newCompaniesCount,
+        activeCompanies: activeCompanies,
+        totalCompanies: COMP_MOCK_LIST.length,
+        growthRate: growthRate
+      },
+      deptPerformance: Array.from(deptPerformance.entries()).map(([dept, amount]) => ({
+        dept,
+        amount: Math.round(amount),
+        ratio: ((amount / monthlyRevenue) * 100).toFixed(1)
+      })),
+      topCompanies: COMP_MOCK_LIST.slice(0, 5).map(company => ({
+        name: company.name,
+        amount: Math.round((monthlyRevenue / COMP_MOCK_LIST.length) * (company.aiScore / 100)),
+        growthCategory: company.growthCategory,
+        aiScore: company.aiScore
+      })),
+      businessDistribution: [
+        { type: '检验检测', amount: Math.round(monthlyRevenue * 0.35), ratio: 35 },
+        { type: '认证评估', amount: Math.round(monthlyRevenue * 0.25), ratio: 25 },
+        { type: '计量校准', amount: Math.round(monthlyRevenue * 0.20), ratio: 20 },
+        { type: '产品开发', amount: Math.round(monthlyRevenue * 0.12), ratio: 12 },
+        { type: 'TSQ培训', amount: Math.round(monthlyRevenue * 0.08), ratio: 8 }
+      ],
+      riskWarning: COMP_MOCK_LIST.filter(c => c.riskIndex > 15).map(company => ({
+        name: company.name,
+        riskIndex: company.riskIndex,
+        reason: '合规评分下降或经营异常'
+      })),
+      highlights: [
+        { title: '本月营收创历史新高', desc: '较上月增长15.8%，主要得益于军工检测业务的大幅提升' },
+        { title: '新增战略合作伙伴', desc: `本月新增${newCompaniesCount}家战略级合作企业，主要集中在华南地区` },
+        { title: '重点客户突破', desc: '成功与某军区电子装备检测项目签约，合同金额350万元' }
+      ]
+    };
+  };
+
+  // 生成年报数据
+  const generateAnnualReportData = () => {
+    const currentYear = '2026';
+    const lastYear = '2025';
+
+    // 计算年度合作总额
+    const annualRevenue = 28650; // 模拟2.865亿元的年度营收
+    const lastYearRevenue = 23380; // 上年度营收
+
+    // 按部门统计年度业绩
+    const deptPerformance = [
+      { dept: '技推处', amount: 8520, ratio: 29.7, growth: 25.8 },
+      { dept: '计量校准', amount: 6250, ratio: 21.8, growth: 18.5 },
+      { dept: '军工检测', amount: 5780, ratio: 20.2, growth: 32.1 },
+      { dept: '元器件检测所', amount: 4520, ratio: 15.8, growth: 15.3 },
+      { dept: '可靠性试验室', amount: 3580, ratio: 12.5, growth: 20.6 }
+    ];
+
+    // 年度重点工作回顾
+    const keyWorkReview = [
+      { category: '资质认证', items: ['通过CNAS实验室复评审', '获得军工体系认证资质', '新增加计标准装置15项'] },
+      { category: '业务拓展', items: ['新增战略客户12家', '军工检测业务增长32%', '华南区域业务覆盖率达85%'] },
+      { category: '能力建设', items: ['引进高端检测设备8台套', '建成智能化检测实验室', '获得发明专利3项'] },
+      { category: '管理创新', items: ['完成质量体系升级', '实施数字化管理平台', '优化客户服务流程'] }
+    ];
+
+    // 年度客户分析
+    const customerAnalysis = {
+      total: 156,
+      strategic: 45,
+      new: 28,
+      lost: 3,
+      satisfaction: 96.8
+    };
+
+    // 下年度工作计划
+    const nextYearPlan = [
+      { target: '营收目标', value: '3.5亿元', growth: '同比增长22%' },
+      { target: '业务拓展', value: '新增战略客户15家以上', focus: '军工、新能源、汽车电子' },
+      { target: '能力建设', value: '建成3个专业化检测实验室', focus: 'SiC器件、功率器件、可靠性' },
+      { target: '技术创新', value: '研发投入占比15%', focus: 'AI检测技术、数字化检测' },
+      { target: '市场布局', value: '覆盖全国20个省市', focus: '华东、华北、西南地区' }
+    ];
+
+    return {
+      reportInfo: {
+        title: '中国赛宝2026年度工作报告',
+        year: '2026年度',
+        reportDate: '2026-12-31',
+        reportPeriod: '2026年1月1日 至 2026年12月31日'
+      },
+      executiveSummary: {
+        totalRevenue: annualRevenue,
+        lastYearRevenue: lastYearRevenue,
+        growthRate: ((annualRevenue - lastYearRevenue) / lastYearRevenue * 100).toFixed(1),
+        totalProfit: Math.round(annualRevenue * 0.18), // 利润率18%
+        profitGrowth: '28.5%',
+        totalProjects: 1248,
+        completedProjects: 1225,
+        completionRate: 98.2
+      },
+      deptPerformance: deptPerformance,
+      businessDistribution: [
+        { type: '检验检测', amount: 10850, ratio: 37.9, growth: 28.5 },
+        { type: '认证评估', amount: 6300, ratio: 22.0, growth: 19.2 },
+        { type: '计量校准', amount: 6250, ratio: 21.8, growth: 18.5 },
+        { type: '产品开发', amount: 3430, ratio: 12.0, growth: 35.8 },
+        { type: 'TSQ培训', amount: 1820, ratio: 6.3, growth: 12.6 }
+      ],
+      quarterlyData: [
+        { quarter: '第一季度', amount: 5980, growth: '+15.2%', keyAchievements: '军工检测业务开局良好，新签合同45份' },
+        { quarter: '第二季度', amount: 6820, growth: '+18.5%', keyAchievements: '通过CNAS复评审，市场竞争力提升' },
+        { quarter: '第三季度', amount: 7150, growth: '+22.8%', keyAchievements: '建成SiC器件检测实验室，业务量大幅增长' },
+        { quarter: '第四季度', amount: 8700, growth: '+28.3%', keyAchievements: '年底冲刺效果显著，军工检测收入创历史新高' }
+      ],
+      keyWorkReview: keyWorkReview,
+      customerAnalysis: customerAnalysis,
+      highlights: [
+        { title: '经营业绩创历史新高', desc: '全年实现营收2.865亿元，同比增长22.5%，利润增长28.5%，各项指标均超额完成' },
+        { title: '核心业务能力显著提升', desc: '通过CNAS复评审、获得军工体系认证、建成专业化实验室，技术实力和品牌影响力大幅提升' },
+        { title: '战略客户拓展成效显著', desc: '新增战略客户12家，军工检测业务增长32%，与中国电科、中航工业等集团合作深化' },
+        { title: '创新驱动发展成果丰硕', desc: '获得发明专利3项、引进高端检测设备8台套、建成智能化检测实验室，数字化转型成效显著' }
+      ],
+      riskWarning: [
+        { name: '某地区合作企业', riskIndex: 18, reason: '所属行业景气度下降，需关注业务持续性' },
+        { name: '元器件供应链', riskIndex: 16, reason: '上游原材料价格波动，影响项目交付周期' }
+      ],
+      nextYearPlan: nextYearPlan,
+      annualConclusion: '2026年是实施"十四五"规划的关键一年，在所领导班子的正确领导下，全所干部职工团结奋斗，攻坚克难，各项工作取得了显著成绩。2027年，我们将继续坚持创新驱动、质量为本、客户至上的发展理念，力争实现营收3.5亿元目标，为高质量发展再创新辉煌！'
+    };
+  };
+
   const handleSend = async () => {
     if (!inputValue.trim()) return;
 
@@ -362,6 +494,38 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
           content: statisticsContent || `抱歉，我无法理解您的统计查询需求。请尝试更具体的询问，如"查询总营收"、"企业数量统计"等。`,
           timestamp: new Date(),
           type: statisticsContent ? 'statistics' : 'text'
+        };
+        setMessages(prev => [...prev, aiMessage]);
+        setIsTyping(false);
+        return;
+      }
+
+      // 检测是否是月报查询
+      if (isMonthlyReportQuery(currentQuery)) {
+        const monthlyReportData = generateMonthlyReportData();
+        const aiMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: `📊 **企业经营情况月报**已生成！\n\n以下是2026年6月的经营数据汇总：`,
+          timestamp: new Date(),
+          type: 'monthly-report',
+          monthlyReportData
+        };
+        setMessages(prev => [...prev, aiMessage]);
+        setIsTyping(false);
+        return;
+      }
+
+      // 检测是否是年报查询
+      if (isAnnualReportQuery(currentQuery)) {
+        const annualReportData = generateAnnualReportData();
+        const aiMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: `📊 **企业经营情况年报**已生成！\n\n以下是2026年度的经营数据汇总：`,
+          timestamp: new Date(),
+          type: 'annual-report',
+          annualReportData
         };
         setMessages(prev => [...prev, aiMessage]);
         setIsTyping(false);
@@ -1009,6 +1173,445 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
       .replace(/{prevRate}/g, prevRate.toFixed(1));
   };
 
+  // 渲染月报报表
+  const renderMonthlyReport = (reportData: any, messageId: string) => {
+    return (
+      <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl border border-blue-200 overflow-hidden">
+        {/* 报表头部 */}
+        <div className="bg-gradient-to-r from-indigo-600 to-blue-600 px-4 py-3 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                <h3 className="text-sm font-bold">{reportData.reportInfo.title}</h3>
+              </div>
+              <p className="text-[10px] text-indigo-200">{reportData.reportInfo.month}</p>
+            </div>
+            <div className="text-right">
+              <div className="text-[10px] text-indigo-200">报告期间</div>
+              <div className="text-xs font-medium">{reportData.reportInfo.reportPeriod}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 space-y-4">
+          {/* 核心指标 */}
+          <div className="grid grid-cols-4 gap-2">
+            <div className="bg-white rounded-lg p-2.5 border border-slate-100">
+              <div className="flex items-center gap-1 text-[9px] text-slate-500 mb-1">
+                <DollarSign className="h-3 w-3" />
+                总营收
+              </div>
+              <div className="text-sm font-bold text-indigo-600">¥{(reportData.summary.totalRevenue / 10000).toFixed(1)}亿</div>
+            </div>
+            <div className="bg-white rounded-lg p-2.5 border border-slate-100">
+              <div className="flex items-center gap-1 text-[9px] text-slate-500 mb-1">
+                <TrendingUp className="h-3 w-3" />
+                增长率
+              </div>
+              <div className="text-sm font-bold text-emerald-600">+{reportData.summary.growthRate}%</div>
+            </div>
+            <div className="bg-white rounded-lg p-2.5 border border-slate-100">
+              <div className="flex items-center gap-1 text-[9px] text-slate-500 mb-1">
+                <Users className="h-3 w-3" />
+                新客户
+              </div>
+              <div className="text-sm font-bold text-blue-600">{reportData.summary.newCompanies}家</div>
+            </div>
+            <div className="bg-white rounded-lg p-2.5 border border-slate-100">
+              <div className="flex items-center gap-1 text-[9px] text-slate-500 mb-1">
+                <Building2 className="h-3 w-3" />
+                活跃客户
+              </div>
+              <div className="text-sm font-bold text-purple-600">{reportData.summary.activeCompanies}家</div>
+            </div>
+          </div>
+
+          {/* 部门业绩 */}
+          <div>
+            <div className="flex items-center gap-1 mb-2">
+              <Building2 className="h-3.5 w-3.5 text-slate-600" />
+              <span className="text-xs font-semibold text-slate-700">部门业绩分布</span>
+            </div>
+            <div className="space-y-1.5">
+              {reportData.deptPerformance.map((dept: any) => (
+                <div key={dept.dept} className="flex items-center gap-2">
+                  <div className="w-20 text-[10px] text-slate-600">{dept.dept}</div>
+                  <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-indigo-500 to-blue-500 rounded-full"
+                      style={{ width: `${dept.ratio}%` }}
+                    />
+                  </div>
+                  <div className="w-16 text-right text-[10px] text-slate-600">
+                    ¥{(dept.amount / 10000).toFixed(1)}亿 ({dept.ratio}%)
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 业务类型分布 */}
+          <div>
+            <div className="flex items-center gap-1 mb-2">
+              <GitCompare className="h-3.5 w-3.5 text-slate-600" />
+              <span className="text-xs font-semibold text-slate-700">业务类型分布</span>
+            </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              {reportData.businessDistribution.map((business: any) => (
+                <div key={business.type} className="bg-white rounded p-2 border border-slate-100">
+                  <div className="text-[9px] text-slate-500">{business.type}</div>
+                  <div className="text-xs font-bold text-slate-700">¥{(business.amount / 10000).toFixed(1)}亿</div>
+                  <div className="text-[9px] text-slate-400">{business.ratio}%</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 重点客户 */}
+          <div>
+            <div className="flex items-center gap-1 mb-2">
+              <Sparkles className="h-3.5 w-3.5 text-slate-600" />
+              <span className="text-xs font-semibold text-slate-700">TOP 5 客户</span>
+            </div>
+            <div className="space-y-1.5">
+              {reportData.topCompanies.map((company: any, idx: number) => (
+                <div key={company.name} className="flex items-center gap-2 bg-white rounded p-2 border border-slate-100">
+                  <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-bold">
+                    {idx + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[10px] font-medium text-slate-900 truncate">{company.name}</div>
+                    <div className="text-[9px] text-slate-500">¥{(company.amount / 10000).toFixed(2)}亿</div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[9px] px-1 py-0.5 bg-emerald-50 text-emerald-700 rounded">
+                      {company.growthCategory}
+                    </span>
+                    <span className="text-[9px] px-1 py-0.5 bg-indigo-50 text-indigo-700 rounded">
+                      {company.aiScore}分
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 月度亮点 */}
+          {reportData.highlights && reportData.highlights.length > 0 && (
+            <div>
+              <div className="flex items-center gap-1 mb-2">
+                <Sparkles className="h-3.5 w-3.5 text-amber-600" />
+                <span className="text-xs font-semibold text-slate-700">月度亮点</span>
+              </div>
+              <div className="space-y-1.5">
+                {reportData.highlights.map((highlight: any) => (
+                  <div key={highlight.title} className="bg-gradient-to-r from-amber-50 to-orange-50 rounded p-2 border border-amber-100">
+                    <div className="text-[10px] font-semibold text-amber-900 mb-0.5">{highlight.title}</div>
+                    <div className="text-[9px] text-amber-800">{highlight.desc}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 风险预警 */}
+          {reportData.riskWarning && reportData.riskWarning.length > 0 && (
+            <div>
+              <div className="flex items-center gap-1 mb-2">
+                <AlertTriangle className="h-3.5 w-3.5 text-red-600" />
+                <span className="text-xs font-semibold text-slate-700">风险预警</span>
+              </div>
+              <div className="space-y-1.5">
+                {reportData.riskWarning.map((risk: any) => (
+                  <div key={risk.name} className="bg-red-50 rounded p-2 border border-red-100">
+                    <div className="flex items-center justify-between">
+                      <div className="text-[10px] font-medium text-red-900">{risk.name}</div>
+                      <div className="text-[9px] px-1.5 py-0.5 bg-red-100 text-red-700 rounded">
+                        风险 {risk.riskIndex}
+                      </div>
+                    </div>
+                    <div className="text-[9px] text-red-800 mt-0.5">{risk.reason}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 操作按钮 */}
+          <div className="flex gap-2 pt-2 border-t border-slate-200">
+            <button className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-[10px] font-medium">
+              <Download className="h-3 w-3" />
+              下载PDF
+            </button>
+            <button className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition text-[10px] font-medium">
+              <Share2 className="h-3 w-3" />
+              分享报告
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // 渲染年报报表
+  const renderAnnualReport = (reportData: any, messageId: string) => {
+    return (
+      <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-200 overflow-hidden">
+        {/* 报表头部 */}
+        <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-3 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                <h3 className="text-sm font-bold">{reportData.reportInfo.title}</h3>
+              </div>
+              <p className="text-[10px] text-emerald-200">{reportData.reportInfo.year}</p>
+            </div>
+            <div className="text-right">
+              <div className="text-[10px] text-emerald-200">报告期间</div>
+              <div className="text-xs font-medium">{reportData.reportInfo.reportPeriod}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 space-y-4">
+          {/* 执行摘要 */}
+          <div className="bg-white rounded-lg p-3 border border-emerald-100">
+            <div className="flex items-center gap-1 mb-2">
+              <FileText className="h-3.5 w-3.5 text-emerald-600" />
+              <span className="text-xs font-semibold text-slate-700">执行摘要</span>
+            </div>
+            <div className="grid grid-cols-4 gap-2 mb-2">
+              <div className="text-center">
+                <div className="text-[9px] text-slate-500">年度营收</div>
+                <div className="text-sm font-bold text-emerald-600">¥{(reportData.executiveSummary.totalRevenue / 10000).toFixed(2)}亿</div>
+                <div className="text-[9px] text-emerald-600">+{reportData.executiveSummary.growthRate}%</div>
+              </div>
+              <div className="text-center">
+                <div className="text-[9px] text-slate-500">年度利润</div>
+                <div className="text-sm font-bold text-slate-700">¥{(reportData.executiveSummary.totalProfit / 10000).toFixed(2)}亿</div>
+                <div className="text-[9px] text-emerald-600">↑{reportData.executiveSummary.profitGrowth}</div>
+              </div>
+              <div className="text-center">
+                <div className="text-[9px] text-slate-500">项目总数</div>
+                <div className="text-sm font-bold text-slate-700">{reportData.executiveSummary.totalProjects}项</div>
+                <div className="text-[9px] text-slate-500">完成率 {reportData.executiveSummary.completionRate}%</div>
+              </div>
+              <div className="text-center">
+                <div className="text-[9px] text-slate-500">完成项目</div>
+                <div className="text-sm font-bold text-slate-700">{reportData.executiveSummary.completedProjects}项</div>
+                <div className="text-[9px] text-slate-500">年度目标达成</div>
+              </div>
+            </div>
+          </div>
+
+          {/* 季度营收趋势 */}
+          <div>
+            <div className="flex items-center gap-1 mb-2">
+              <TrendingUp className="h-3.5 w-3.5 text-slate-600" />
+              <span className="text-xs font-semibold text-slate-700">季度营收趋势</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {reportData.quarterlyData.map((quarter: any) => (
+                <div key={quarter.quarter} className="bg-white rounded p-2.5 border border-slate-100">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-medium text-slate-700">{quarter.quarter}</span>
+                    <span className="text-[10px] text-emerald-600 font-medium">{quarter.growth}</span>
+                  </div>
+                  <div className="text-xs font-bold text-slate-700 mb-1">¥{(quarter.amount / 10000).toFixed(2)}亿元</div>
+                  <div className="text-[9px] text-slate-500">{quarter.keyAchievements}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 部门年度业绩 */}
+          <div>
+            <div className="flex items-center gap-1 mb-2">
+              <Building2 className="h-3.5 w-3.5 text-slate-600" />
+              <span className="text-xs font-semibold text-slate-700">部门年度业绩</span>
+            </div>
+            <div className="space-y-1.5">
+              {reportData.deptPerformance.map((dept: any) => (
+                <div key={dept.dept} className="flex items-center gap-2">
+                  <div className="w-20 text-[10px] text-slate-600">{dept.dept}</div>
+                  <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"
+                      style={{ width: `${dept.ratio}%` }}
+                    />
+                  </div>
+                  <div className="w-24 text-right text-[10px] text-slate-600">
+                    ¥{(dept.amount / 10000).toFixed(2)}亿 ({dept.ratio}%)
+                  </div>
+                  <div className="w-16 text-right text-[10px] text-emerald-600 font-medium">
+                    +{dept.growth}%
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 业务类型分布 */}
+          <div>
+            <div className="flex items-center gap-1 mb-2">
+              <GitCompare className="h-3.5 w-3.5 text-slate-600" />
+              <span className="text-xs font-semibold text-slate-700">业务类型分布</span>
+            </div>
+            <div className="grid grid-cols-3 gap-1.5">
+              {reportData.businessDistribution.map((business: any) => (
+                <div key={business.type} className="bg-white rounded p-2 border border-slate-100">
+                  <div className="text-[9px] text-slate-500 mb-1">{business.type}</div>
+                  <div className="text-xs font-bold text-slate-700 mb-0.5">¥{(business.amount / 10000).toFixed(2)}亿</div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] text-slate-400">{business.ratio}%</span>
+                    <span className="text-[9px] text-emerald-600">+{business.growth}%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 年度重点工作回顾 */}
+          <div>
+            <div className="flex items-center gap-1 mb-2">
+              <FileText className="h-3.5 w-3.5 text-slate-600" />
+              <span className="text-xs font-semibold text-slate-700">年度重点工作回顾</span>
+            </div>
+            <div className="space-y-2">
+              {reportData.keyWorkReview.map((work: any) => (
+                <div key={work.category} className="bg-white rounded p-2 border border-slate-100">
+                  <div className="text-[10px] font-medium text-slate-700 mb-1">{work.category}</div>
+                  <div className="flex flex-wrap gap-1">
+                    {work.items.map((item: string, idx: number) => (
+                      <span key={idx} className="text-[9px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 客户分析 */}
+          {reportData.customerAnalysis && (
+            <div>
+              <div className="flex items-center gap-1 mb-2">
+                <Users className="h-3.5 w-3.5 text-slate-600" />
+                <span className="text-xs font-semibold text-slate-700">年度客户分析</span>
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                <div className="bg-white rounded p-2 border border-slate-100 text-center">
+                  <div className="text-[9px] text-slate-500">客户总数</div>
+                  <div className="text-sm font-bold text-slate-700">{reportData.customerAnalysis.total}家</div>
+                </div>
+                <div className="bg-white rounded p-2 border border-slate-100 text-center">
+                  <div className="text-[9px] text-slate-500">战略客户</div>
+                  <div className="text-sm font-bold text-indigo-600">{reportData.customerAnalysis.strategic}家</div>
+                </div>
+                <div className="bg-white rounded p-2 border border-slate-100 text-center">
+                  <div className="text-[9px] text-slate-500">新增客户</div>
+                  <div className="text-sm font-bold text-emerald-600">{reportData.customerAnalysis.new}家</div>
+                </div>
+                <div className="bg-white rounded p-2 border border-slate-100 text-center">
+                  <div className="text-[9px] text-slate-500">满意度</div>
+                  <div className="text-sm font-bold text-amber-600">{reportData.customerAnalysis.satisfaction}%</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 年度亮点 */}
+          {reportData.highlights && reportData.highlights.length > 0 && (
+            <div>
+              <div className="flex items-center gap-1 mb-2">
+                <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
+                <span className="text-xs font-semibold text-slate-700">年度亮点</span>
+              </div>
+              <div className="space-y-1.5">
+                {reportData.highlights.map((highlight: any) => (
+                  <div key={highlight.title} className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded p-2 border border-emerald-100">
+                    <div className="text-[10px] font-semibold text-emerald-900 mb-0.5">{highlight.title}</div>
+                    <div className="text-[9px] text-emerald-800">{highlight.desc}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 风险预警 */}
+          {reportData.riskWarning && reportData.riskWarning.length > 0 && (
+            <div>
+              <div className="flex items-center gap-1 mb-2">
+                <AlertTriangle className="h-3.5 w-3.5 text-red-600" />
+                <span className="text-xs font-semibold text-slate-700">风险预警</span>
+              </div>
+              <div className="space-y-1.5">
+                {reportData.riskWarning.map((risk: any) => (
+                  <div key={risk.name} className="bg-red-50 rounded p-2 border border-red-100">
+                    <div className="flex items-center justify-between">
+                      <div className="text-[10px] font-medium text-red-900">{risk.name}</div>
+                      <div className="text-[9px] px-1.5 py-0.5 bg-red-100 text-red-700 rounded">
+                        风险 {risk.riskIndex}
+                      </div>
+                    </div>
+                    <div className="text-[9px] text-red-800 mt-0.5">{risk.reason}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 下年度工作计划 */}
+          {reportData.nextYearPlan && (
+            <div>
+              <div className="flex items-center gap-1 mb-2">
+                <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
+                <span className="text-xs font-semibold text-slate-700">2027年度工作计划</span>
+              </div>
+              <div className="space-y-1.5">
+                {reportData.nextYearPlan.map((plan: any) => (
+                  <div key={plan.target} className="bg-white rounded p-2 border border-slate-100">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-medium text-slate-700">{plan.target}</span>
+                      <span className="text-[10px] text-emerald-600 font-medium">{plan.value}</span>
+                    </div>
+                    <div className="text-[9px] text-slate-500">重点：{plan.focus}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 年度总结 */}
+          {reportData.annualConclusion && (
+            <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg p-3 border border-emerald-100">
+              <div className="flex items-center gap-1 mb-2">
+                <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
+                <span className="text-xs font-semibold text-emerald-900">年度总结</span>
+              </div>
+              <p className="text-[10px] text-emerald-800 leading-relaxed">{reportData.annualConclusion}</p>
+            </div>
+          )}
+
+          {/* 操作按钮 */}
+          <div className="flex gap-2 pt-2 border-t border-slate-200">
+            <button className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition text-[10px] font-medium">
+              <Download className="h-3 w-3" />
+              下载PDF
+            </button>
+            <button className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition text-[10px] font-medium">
+              <Share2 className="h-3 w-3" />
+              分享报告
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
       {/* AI Chat Sidebar */}
@@ -1106,6 +1709,20 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
                   </div>
                 )}
 
+                {/* 月报报表 */}
+                {message.type === 'monthly-report' && message.monthlyReportData && (
+                  <div className="mt-3">
+                    {renderMonthlyReport(message.monthlyReportData, message.id)}
+                  </div>
+                )}
+
+                {/* 年报报表 */}
+                {message.type === 'annual-report' && message.annualReportData && (
+                  <div className="mt-3">
+                    {renderAnnualReport(message.annualReportData, message.id)}
+                  </div>
+                )}
+
                 {/* Message Footer */}
                 <div className="flex items-center gap-2 mt-1.5 px-1">
                   <span className="text-[10px] text-slate-400 flex items-center gap-1">
@@ -1159,69 +1776,20 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
           {/* 快捷问题 */}
           <div className="flex flex-wrap gap-2 mb-3">
             <button
-              onClick={() => setInputValue('华为技术的企业画像')}
-              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-[11px] text-slate-600 transition"
+              onClick={() => setInputValue('生成企业经营情况月报')}
+              className="px-3 py-1.5 bg-gradient-to-r from-indigo-100 to-purple-100 hover:from-indigo-200 hover:to-purple-200 rounded-lg text-[11px] font-medium text-indigo-700 transition flex items-center gap-1"
             >
-              华为画像
+              <FileText className="h-3 w-3" />
+              月报报表
             </button>
             <button
-              onClick={() => setInputValue('查询华为的合同信息')}
-              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-[11px] text-slate-600 transition"
+              onClick={() => setInputValue('生成企业经营情况年报')}
+              className="px-3 py-1.5 bg-gradient-to-r from-emerald-100 to-teal-100 hover:from-emerald-200 hover:to-teal-200 rounded-lg text-[11px] font-medium text-emerald-700 transition flex items-center gap-1"
             >
-              华为合同
-            </button>
-            <button
-              onClick={() => setInputValue('对比华为和中兴通讯')}
-              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-[11px] text-slate-600 transition"
-            >
-              华为vs中兴
-            </button>
-            <button
-              onClick={() => setInputValue('比亚迪的AI评分如何？')}
-              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-[11px] text-slate-600 transition"
-            >
-              比亚迪评分
-            </button>
-            <button
-              onClick={() => setInputValue('查询总营收数据')}
-              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-[11px] text-slate-600 transition"
-            >
-              营收统计
-            </button>
-            <button
-              onClick={() => setInputValue('企业数量是多少？')}
-              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-[11px] text-slate-600 transition"
-            >
-              企业统计
+              <FileText className="h-3 w-3" />
+              年报报表
             </button>
           </div>
-
-          {/* Page-Specific Recommended Topics */}
-          {messages.length === 1 && (
-            <div className="mb-3 p-3 bg-gradient-to-r from-indigo-50 to-sky-50 rounded-xl border border-indigo-100">
-              <div className="flex items-center gap-1.5 mb-2">
-                <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
-                <span className="text-xs font-semibold text-indigo-900">当前页面推荐话题</span>
-              </div>
-              <div className="grid grid-cols-2 gap-1.5">
-                {getPageSpecificTopics().map((topic, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setInputValue(topic.prompt)}
-                    className="text-left px-2.5 py-2 bg-white rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 transition group"
-                  >
-                    <div className="flex items-start gap-1.5">
-                      <span className="text-sm">{topic.icon}</span>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[10px] font-medium text-slate-700 group-hover:text-indigo-700 line-clamp-1">{topic.title}</div>
-                        <div className="text-[9px] text-slate-400 line-clamp-1">{topic.prompt}</div>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           <div className="flex gap-2">
             <input
@@ -1247,18 +1815,6 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
         </div>
       </aside>
 
-      {/* Minimized Toggle Button */}
-      {!isOpen && (
-        <button
-          onClick={onToggle}
-          className="fixed right-0 top-1/2 -translate-y-1/2 bg-indigo-600 text-white px-3 py-4 rounded-l-xl shadow-lg hover:bg-indigo-700 transition z-40 group"
-        >
-          <div className="flex flex-col items-center gap-2">
-            <Sparkles className="h-5 w-5" />
-            <span className="text-[10px] writing-vertical">AI对话</span>
-          </div>
-        </button>
-      )}
     </>
   );
 }

@@ -18,7 +18,8 @@ import {
   X,
   Sparkles,
   FileText,
-  TrendingUp
+  Radar,
+  Database
 } from 'lucide-react';
 
 import DashboardModule from './components/DashboardModule';
@@ -27,7 +28,8 @@ import GroupListModule from './components/GroupListModule';
 import EnterpriseModule from './components/EnterpriseModule';
 import EnterpriseListModule from './components/EnterpriseListModule';
 import SearchModule from './components/SearchModule';
-import NewsFeedModule from './components/NewsFeedModule';
+import IntelligenceModule from './components/IntelligenceModule';
+import KnowledgeModule from './components/KnowledgeModule';
 import AIChatSidebar from './components/AIChatSidebar';
 
 export default function App() {
@@ -108,8 +110,10 @@ export default function App() {
             }}
           />
         );
-      case 'newsFeed':
-        return <NewsFeedModule />;
+      case 'intelligence':
+        return <IntelligenceModule />;
+      case 'knowledge':
+        return <KnowledgeModule />;
       default:
         return <DashboardModule
           onNavigateToCompany={(id) => {
@@ -128,11 +132,11 @@ export default function App() {
   };
 
   const navMenuItems = [
-    { id: 'aiChat', label: 'AI智能对话', desc: 'AI data analysis chat', icon: Sparkles },
     { id: 'dashboard', label: '数据大盘研判', desc: 'Cockpit overview', icon: LayoutDashboard },
     { id: 'enterpriseManagement', label: '企业管理', desc: 'Enterprise & Group management', icon: Building2 },
     { id: 'enterpriseSearch', label: '企业搜索', desc: 'Enterprise search', icon: SearchCode },
-    { id: 'newsFeed', label: '行情速递', desc: 'Market intelligence', icon: TrendingUp },
+    { id: 'intelligence', label: '情报速递', desc: 'Intelligence system', icon: Radar },
+    { id: 'knowledge', label: '知识库管理', desc: 'Knowledge base system', icon: Database },
   ];
 
   return (
@@ -151,7 +155,7 @@ export default function App() {
             </div>
             <div>
               <h1 className="font-display font-bold leading-tight tracking-tight text-white text-sm">
-                云上赛宝数智专盘
+                客户画像
               </h1>
               <span className="text-[10px] text-slate-400 font-sans tracking-wide">工信部五所 · 企业合作大盘</span>
             </div>
