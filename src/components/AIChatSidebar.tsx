@@ -1815,6 +1815,19 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
         </div>
       </aside>
 
+      {/* Minimized Toggle Button */}
+      {!isOpen && (
+        <button
+          onClick={onToggle}
+          className="fixed right-0 top-1/2 -translate-y-1/2 bg-indigo-600 text-white px-3 py-4 rounded-l-xl shadow-lg hover:bg-indigo-700 transition z-50 group"
+        >
+          <div className="flex flex-col items-center gap-2">
+            <Sparkles className="h-5 w-5" />
+            <span className="text-[10px] writing-vertical">AI对话</span>
+          </div>
+        </button>
+      )}
+
     </>
   );
 }
