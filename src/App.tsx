@@ -30,7 +30,9 @@ import EnterpriseListModule from './components/EnterpriseListModule';
 import SearchModule from './components/SearchModule';
 import IntelligenceModule from './components/IntelligenceModule';
 import KnowledgeModule from './components/KnowledgeModule';
+import MetricConfigModule from './components/MetricConfigModule';
 import AIChatSidebar from './components/AIChatSidebar';
+import { MetricConfigProvider } from './context/MetricConfigContext';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
@@ -115,6 +117,8 @@ export default function App() {
         return <IntelligenceModule />;
       case 'knowledge':
         return <KnowledgeModule />;
+      case 'metricConfig':
+        return <MetricConfigModule />;
       default:
         return <DashboardModule
           onNavigateToCompany={(id) => {
@@ -132,15 +136,16 @@ export default function App() {
     }
   };
 
+  // 已隐藏模块：企业管理(enterpriseManagement)、企业搜索(enterpriseSearch)、
+  // 情报速递(intelligence)、知识库管理(knowledge)。
+  // 对应路由与组件仍保留在 renderModule 中，需要恢复时把条目加回本数组即可。
   const navMenuItems = [
     { id: 'dashboard', label: '数据大盘研判', desc: 'Cockpit overview', icon: LayoutDashboard },
-    { id: 'enterpriseManagement', label: '企业管理', desc: 'Enterprise & Group management', icon: Building2 },
-    { id: 'enterpriseSearch', label: '企业搜索', desc: 'Enterprise search', icon: SearchCode },
-    { id: 'intelligence', label: '情报速递', desc: 'Intelligence system', icon: Radar },
-    { id: 'knowledge', label: '知识库管理', desc: 'Knowledge base system', icon: Database },
+    { id: 'metricConfig', label: '数据指标配置', desc: 'Metric & dimension center', icon: BarChart3 },
   ];
 
   return (
+    <MetricConfigProvider>
     <div id="saibao-applet-root" className="min-h-screen bg-slate-50/60 text-slate-800 font-sans flex flex-col md:flex-row">
       
       {/* 1. Left Persistent Sidebar - Hidden when standard printer layout activates */}
@@ -261,5 +266,6 @@ export default function App() {
       />
 
     </div>
+    </MetricConfigProvider>
   );
 }

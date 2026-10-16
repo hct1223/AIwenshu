@@ -24,22 +24,50 @@ import {
   FileText,
   AlertTriangle,
   Download,
-  Share2
+  Share2,
+  Table2,
+  Ban,
+  ShieldAlert,
+  ArrowRight,
+  Database
 } from 'lucide-react';
 import { COMP_MOCK_LIST, GROUP_MOCK_LIST } from '../data/mockData';
-import { Company, GroupData } from '../types';
+import { Company, GroupData, UserRole, ROLE_PERMISSIONS } from '../types';
+import { METRIC_STATUS_META, STAT_PERIOD_META, AGGREGATION_META, MASK_STRATEGY_META } from '../types';
+import { usePersistentState } from '../hooks/usePersistentState';
+import { useMetricConfig } from '../context/MetricConfigContext';
+import { CONFIG_OPERATOR } from '../data/metricConfigDefaults';
+import {
+  resolveChatQuery,
+  refusalMessage,
+  buildQueryLogEntry,
+  applyMask,
+  PERMISSION_SAMPLE_SOURCES,
+  type ResolveResult
+} from '../data/metricEngine';
+import { MOCK_DERIVED_TYPES, buildDirectionalAnalysis, type AnalysisSection } from '../data/mockAnalysis';
+import ChatAnalysisCard from './ChatAnalysisCard';
+import {
+  callableBadgeClass,
+  notCallableBadgeClass,
+  badgeClass
+} from './metricConfigStyles';
 
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
-  type?: 'text' | 'company-profile' | 'company-comparison' | 'group-profile' | 'group-comparison' | 'statistics' | 'contract-info' | 'monthly-report' | 'annual-report';
+  type?: 'text' | 'company-profile' | 'company-comparison' | 'group-profile' | 'group-comparison' | 'statistics' | 'contract-info' | 'monthly-report' | 'annual-report' | 'metric-explanation' | 'config-refusal' | 'mock-analysis';
   companies?: Company[];
   groups?: GroupData[];
   comparisonData?: any;
   monthlyReportData?: any;
   annualReportData?: any;
+  /** 命中配置中心时的解析结果（指标口径 / 维度映射 / 拒绝） */
+  resolveResult?: ResolveResult;
+  /** 四个方向分析的结构化数据，用于渲染图表 */
+  analysis?: AnalysisSection;
 }
 
 interface AIChatSidebarProps {
@@ -55,12 +83,27 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
     {
       id: '1',
       role: 'assistant',
-      content: '尊敬的领导，您好！欢迎使用中国赛宝实验室 AI 智能管理助手。\n\n本系统整合产业政策、行业动态、全板块经营业务、重点大客户台账，同步实时风险预警信息，可快速为您提供：\n\n📊 企业整体经营概况\n📈 各业务板块运行数据\n👥 重点客户合作现状\n🔍 市场竞争动态\n⚠️ 经营风险与项目预警\n📋 情报速递专题汇总\n\n等综合研判信息，请您输入查询需求。',
+      content: '尊敬的领导，您好！欢迎使用中国赛宝实验室 AI 智能助手。\n\n本助手主要用于辅助查询五所的经验数据相关信息，整合全板块经营业务与重点大客户台账，同步实时风险预警信息，可快速为您提供：\n\n📊 企业整体经营概况\n📈 各业务板块运行数据\n👥 重点客户合作现状\n⚠️ 经营风险与项目预警\n\n等经验数据查询服务，请您输入查询需求。',
       timestamp: new Date()
     }
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+
+  /**
+   * 提问角色。没有登录态，所以由用户选择。
+   * 与权限页的模拟预览选择器不同 —— 这个真的驱动行为（密级拦截与脱敏），
+   * 因此会如实记录进查询日志。
+   */
+  const [chatRole, setChatRole] = usePersistentState<UserRole>(
+    'saibao.aiChat.role',
+    'institute_leader',
+    { version: 1 }
+  );
+
+  // 配置中心：读取口径与记录查询日志
+  const { config, logQuery } = useMetricConfig();
+
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -484,6 +527,67 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
     setTimeout(() => {
       const foundCompanies = findCompanies(currentQuery);
       const foundGroups = findGroups(currentQuery);
+
+      // —— 配置中心优先：指标口径 / 维度映射查询 ——
+      // 必须排在所有既有分支之前，否则「查询客户总数」会被下面的统计分支吃掉。
+      // 未命中配置（kind === 'none'）时不拦截，原样落到存量逻辑。
+      const resolved = resolveChatQuery(config, currentQuery, chatRole);
+      if (resolved.kind === 'metric' || resolved.kind === 'dimension') {
+        const target =
+          resolved.kind === 'metric' ? resolved.resolution.metric : resolved.resolution.dimension;
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: (Date.now() + 1).toString(),
+            role: 'assistant',
+            content: `已按数据指标配置中心解析：${resolved.kind === 'metric' ? '指标' : '维度'}「${target.name}」的口径与查询计划如下。`,
+            timestamp: new Date(),
+            type: 'metric-explanation',
+            resolveResult: resolved
+          }
+        ]);
+        logQuery(buildQueryLogEntry(currentQuery, chatRole, resolved, CONFIG_OPERATOR.name));
+        setIsTyping(false);
+        return;
+      }
+      if (resolved.kind === 'refused') {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: (Date.now() + 1).toString(),
+            role: 'assistant',
+            content: refusalMessage(config, resolved.refusal),
+            timestamp: new Date(),
+            type: 'config-refusal',
+            resolveResult: resolved
+          }
+        ]);
+        logQuery(buildQueryLogEntry(currentQuery, chatRole, resolved, CONFIG_OPERATOR.name));
+        setIsTyping(false);
+        return;
+      }
+
+      // —— 欢迎语承诺的四个方向：基于模拟数据作答 ——
+      // 必须排在统计分支之前，否则「各业务板块运行数据」会被统计关键词「数据」抢先命中。
+      // 仅在未指名具体企业/集团时生效；一旦点名了企业或集团，仍走原有的画像逻辑。
+      if (foundCompanies.length === 0 && foundGroups.length === 0) {
+        const analysis = buildDirectionalAnalysis(currentQuery);
+        if (analysis) {
+          setMessages(prev => [
+            ...prev,
+            {
+              id: (Date.now() + 1).toString(),
+              role: 'assistant',
+              content: '已从系统内置模拟台账汇总，结果如下。',
+              timestamp: new Date(),
+              type: 'mock-analysis',
+              analysis
+            }
+          ]);
+          setIsTyping(false);
+          return;
+        }
+      }
 
       // 检测是否是统计查询
       if (isStatisticsQuery(currentQuery)) {
@@ -1612,6 +1716,339 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
     );
   };
 
+  /** 表名徽章：已建表 / 待建表 / 未登记 */
+  const renderSchemaBadge = (schemaStatus: string) => {
+    if (schemaStatus === 'exists') {
+      return (
+        <span className={`${badgeClass} bg-slate-100 text-slate-600`}>已建表</span>
+      );
+    }
+    if (schemaStatus === 'planned') {
+      return <span className={`${badgeClass} bg-amber-100 text-amber-700`}>待建表</span>;
+    }
+    return <span className={`${badgeClass} bg-rose-100 text-rose-700`}>未登记</span>;
+  };
+
+  const renderPlanRow = (label: string, value: React.ReactNode) => (
+    <div className="flex items-start gap-2 py-1">
+      <span className="text-[10px] text-slate-400 w-16 shrink-0 pt-0.5">{label}</span>
+      <span className="text-[11px] text-slate-700 min-w-0 flex-1">{value}</span>
+    </div>
+  );
+
+  /**
+   * 配置中心口径卡片。
+   * 全卡不出现任何计算出的数值 —— 只呈现配置内容与语义引擎的执行计划。
+   */
+  const renderMetricExplanation = (result: ResolveResult) => {
+    if (result.kind === 'metric') {
+      const { metric, preview, matchedBy, hitTerm } = result.resolution;
+      const statusMeta = METRIC_STATUS_META[metric.status];
+
+      return (
+        <div className="bg-white rounded-xl border border-indigo-200 shadow-sm overflow-hidden">
+          {/* 头部 */}
+          <div className="px-4 py-3 bg-indigo-50 border-b border-indigo-100">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-semibold text-slate-900">{metric.name}</span>
+              <code className="px-1.5 py-0.5 rounded bg-white text-slate-600 text-[10px] font-mono">
+                {metric.code}
+              </code>
+              <span className={`${badgeClass} bg-white text-indigo-700`}>{metric.category}</span>
+              <span className={`${badgeClass} bg-white text-slate-600`}>{statusMeta.label}</span>
+              <span
+                className={`${badgeClass} ${statusMeta.callable ? callableBadgeClass : notCallableBadgeClass}`}
+              >
+                {statusMeta.callable ? '可调用' : '不可调用'}
+              </span>
+            </div>
+            <p className="mt-1 text-[10px] text-slate-500">
+              命中方式：{matchedBy === 'metric_name' ? '指标名称' : '指标编码'}「{hitTerm}」
+            </p>
+          </div>
+
+          <div className="p-4 space-y-4">
+            {/* 口径 */}
+            <section>
+              <div className="flex items-center gap-1.5 mb-2">
+                <FileText className="h-3.5 w-3.5 text-indigo-600" />
+                <span className="text-xs font-semibold text-slate-900">口径</span>
+              </div>
+              <p className="text-[11px] text-slate-700 leading-relaxed">{metric.definition}</p>
+              <div className="mt-2 px-3 py-2 bg-slate-50 rounded-lg">
+                <div className="text-[10px] text-slate-400 mb-0.5">精准计算公式</div>
+                <code className="font-mono text-[11px] text-slate-800 break-all">
+                  {metric.formula}
+                </code>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-slate-600">
+                <span>统计周期：{STAT_PERIOD_META[metric.period].label}</span>
+                <span>聚合方式：{AGGREGATION_META[metric.aggregation].label}</span>
+              </div>
+              {metric.specialNote && (
+                <p className="mt-2 text-[10px] text-amber-800 bg-amber-50 border border-amber-100 rounded px-2 py-1">
+                  {metric.specialNote}
+                </p>
+              )}
+            </section>
+
+            {/* 查询计划 */}
+            <section className="pt-3 border-t border-slate-100">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Table2 className="h-3.5 w-3.5 text-indigo-600" />
+                <span className="text-xs font-semibold text-slate-900">查询计划</span>
+                <span className="text-[10px] text-slate-400">（语义引擎据此执行，大模型不参与）</span>
+              </div>
+
+              {renderPlanRow(
+                '关联数据表',
+                <span className="space-y-1 block">
+                  {preview.resolvedTables.map((table) => (
+                    <span key={table.tableKey} className="flex items-center gap-1.5">
+                      <code className="font-mono text-slate-700">{table.tableKey}</code>
+                      {renderSchemaBadge(table.schemaStatus)}
+                    </span>
+                  ))}
+                </span>
+              )}
+
+              {renderPlanRow(
+                '关联链路',
+                preview.joinChain ? (
+                  <span>
+                    {preview.joinChain.join('、')}
+                    <span className="ml-2 text-slate-400">连接方式 {preview.joinType} JOIN</span>
+                  </span>
+                ) : (
+                  <span className="flex items-start gap-1 text-amber-800">
+                    <AlertTriangle className="h-3 w-3 shrink-0 mt-0.5" />
+                    未登记标准链路，语义引擎无法据此执行 —— 需先在「表关联配置」中补全。
+                  </span>
+                )
+              )}
+
+              {renderPlanRow(
+                '数据范围',
+                <>
+                  {preview.defaultScope}（模糊提问默认）
+                  <span className="ml-2 text-slate-400">
+                    默认周期 {STAT_PERIOD_META[preview.defaultPeriod].label}
+                  </span>
+                </>
+              )}
+
+              {renderPlanRow('纳入状态', preview.filters.includedStatuses.join('、'))}
+              {renderPlanRow('剔除状态', preview.filters.excludedStatuses.join('、'))}
+              {renderPlanRow('节点优先级', preview.filters.nodePriority.join(' > '))}
+              {renderPlanRow(
+                '空值处理',
+                `填充 ${preview.filters.nullFillValue}，缺失维度归入「${preview.filters.missingDimensionLabel}」${
+                  preview.filters.wipCountOnly ? '，在途仅计数量' : ''
+                }${preview.filters.revenueIncludesWip ? '' : '、不纳入营收'}`
+              )}
+
+              {renderPlanRow(
+                '脱敏字段',
+                (() => {
+                  const mine = preview.maskedFields.filter((f) => f.appliesToRole === chatRole);
+                  if (mine.length === 0) {
+                    return <span className="text-slate-400">当前身份无需脱敏</span>;
+                  }
+                  return (
+                    <span className="space-y-0.5 block">
+                      {mine.map((field) => (
+                        <span key={field.field} className="flex items-center gap-1.5">
+                          <span>{field.label}</span>
+                          <span className="text-slate-400">
+                            {MASK_STRATEGY_META[field.strategy].label}
+                          </span>
+                          <code className="font-mono text-slate-700">
+                            {applyMask(field.strategy, PERMISSION_SAMPLE_SOURCES[field.field] ?? '')}
+                          </code>
+                        </span>
+                      ))}
+                    </span>
+                  );
+                })()
+              )}
+
+              {renderPlanRow(
+                '大模型边界',
+                `单次查询关联表 ≤ ${preview.boundary.maxJoinTables} 张 · ` +
+                  `${preview.boundary.forbidCrossDomainJoin ? '禁' : '允许'}跨域关联 · ` +
+                  `${preview.boundary.forbidDirectDbAccess ? '禁' : '允许'}直连底层库`
+              )}
+            </section>
+          </div>
+
+          <div className="px-4 py-2 bg-slate-50 border-t border-slate-100">
+            <p className="text-[10px] text-slate-400">
+              以上口径与查询计划均来自数据指标配置中心 v{config.configVersion}，未做任何数值计算。
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    if (result.kind === 'dimension') {
+      const { dimension, enumValue, requiresClearance, fields, hitTerm } = result.resolution;
+      const logicalTable = dimension.standardField.split('.')[0];
+      const nodeStatus =
+        config.joinChains.flatMap((c) => c.nodes).find((n) => n.tableKey === logicalTable)
+          ?.schemaStatus ?? 'unknown';
+
+      return (
+        <div className="bg-white rounded-xl border border-sky-200 shadow-sm overflow-hidden">
+          <div className="px-4 py-3 bg-sky-50 border-b border-sky-100">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-semibold text-slate-900">{dimension.name}</span>
+              <code className="px-1.5 py-0.5 rounded bg-white text-slate-600 text-[10px] font-mono">
+                {dimension.code}
+              </code>
+              <span className={`${badgeClass} bg-white text-sky-700`}>{dimension.category}</span>
+              {requiresClearance > 0 && (
+                <span className={`${badgeClass} bg-rose-100 text-rose-700`}>
+                  需密级 {requiresClearance}
+                </span>
+              )}
+            </div>
+            <p className="mt-1 text-[10px] text-slate-500">命中词汇「{hitTerm}」</p>
+          </div>
+
+          <div className="p-4 space-y-4">
+            <section>
+              <div className="flex items-center gap-1.5 mb-2">
+                <FileText className="h-3.5 w-3.5 text-sky-600" />
+                <span className="text-xs font-semibold text-slate-900">维度映射</span>
+              </div>
+              {renderPlanRow(
+                '标准字段',
+                <code className="font-mono text-slate-700">{dimension.standardField}</code>
+              )}
+              {renderPlanRow('使用场景', dimension.usageScene)}
+              {renderPlanRow('口语别名', dimension.aliases.join('、'))}
+            </section>
+
+            {enumValue && (
+              <section className="pt-3 border-t border-slate-100">
+                <div className="text-xs font-semibold text-slate-900 mb-2">口语归并</div>
+                <div className="flex items-center gap-2 flex-wrap px-3 py-2 bg-sky-50 rounded-lg">
+                  <span className="px-2 py-0.5 rounded bg-white text-slate-500 text-[11px]">
+                    口语「{hitTerm}」
+                  </span>
+                  <ArrowRight className="h-3 w-3 text-slate-400" />
+                  <span className="px-2 py-0.5 rounded bg-sky-600 text-white text-[11px] font-medium">
+                    标准取值「{enumValue.value}」
+                  </span>
+                </div>
+                {enumValue.aliases && enumValue.aliases.length > 0 && (
+                  <p className="mt-1.5 text-[10px] text-slate-500">
+                    该取值还归并了：{enumValue.aliases.join('、')}
+                  </p>
+                )}
+              </section>
+            )}
+
+            <section className="pt-3 border-t border-slate-100">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Table2 className="h-3.5 w-3.5 text-sky-600" />
+                <span className="text-xs font-semibold text-slate-900">查询计划</span>
+              </div>
+              {renderPlanRow(
+                '关联数据表',
+                <span className="flex items-center gap-1.5">
+                  <code className="font-mono text-slate-700">{logicalTable}</code>
+                  {renderSchemaBadge(nodeStatus)}
+                </span>
+              )}
+              {enumValue && renderPlanRow('命中取值', enumValue.value)}
+              {renderPlanRow('数据范围', `${config.statRules.defaultScope}（模糊提问默认）`)}
+              {renderPlanRow(
+                '脱敏字段',
+                fields.length === 0 ? (
+                  <span className="text-slate-400">当前身份无需脱敏</span>
+                ) : (
+                  <span className="space-y-0.5 block">
+                    {fields.map((field) => (
+                      <span key={field.field} className="flex items-center gap-1.5">
+                        <span>{field.label}</span>
+                        <code className="font-mono text-slate-700">{field.sample}</code>
+                      </span>
+                    ))}
+                  </span>
+                )
+              )}
+            </section>
+          </div>
+
+          <div className="px-4 py-2 bg-slate-50 border-t border-slate-100">
+            <p className="text-[10px] text-slate-400">
+              维度映射来自数据指标配置中心 v{config.configVersion}，大模型不得绕过字典自行映射。
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+  /** 配置中心拒绝卡片 */
+  const renderConfigRefusal = (result: ResolveResult) => {
+    if (result.kind !== 'refused') return null;
+    const { reason, metric, dimension, requiredClearance, roleClearance } = result.refusal;
+
+    return (
+      <div className="bg-rose-50 rounded-xl border border-rose-200 overflow-hidden">
+        <div className="px-4 py-3 flex items-center gap-2 border-b border-rose-100">
+          <ShieldAlert className="h-4 w-4 text-rose-600 shrink-0" />
+          <span className="text-xs font-semibold text-rose-900">
+            {reason === 'metric_not_published' && '指标未发布，不可调用'}
+            {reason === 'dimension_not_published' && '维度未发布，不可用于映射'}
+            {reason === 'dimension_no_clearance' && '密级权限不足，提问已拦截'}
+          </span>
+        </div>
+
+        <div className="px-4 py-3 space-y-1.5 text-[11px]">
+          {(metric || dimension) && (
+            <div className="flex items-center gap-2">
+              <span className="text-rose-700 font-medium">{(metric ?? dimension)!.name}</span>
+              <code className="font-mono text-[10px] text-rose-500">
+                {(metric ?? dimension)!.code}
+              </code>
+            </div>
+          )}
+
+          {reason === 'metric_not_published' && metric && (
+            <p className="text-rose-800">
+              当前状态「{METRIC_STATUS_META[metric.status].label}」。按配置中心规则
+              <span className="font-semibold">「只有已发布才能被调用」</span>
+              ，该指标无法生成查询计划。
+            </p>
+          )}
+
+          {reason === 'dimension_no_clearance' && (
+            <div className="flex items-center gap-3 text-rose-800">
+              <span>
+                所需密级：{requiredClearance}（
+                {config.permissions.clearanceLabels[requiredClearance ?? 0] ?? '—'}）
+              </span>
+              <Ban className="h-3 w-3 text-rose-400" />
+              <span>
+                当前密级：{roleClearance}（
+                {config.permissions.clearanceLabels[roleClearance ?? 0] ?? '—'}）
+              </span>
+            </div>
+          )}
+
+          <p className="text-[10px] text-rose-500 pt-1 border-t border-rose-100">
+            本次提问已记入查询日志。
+          </p>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
       {/* AI Chat Sidebar */}
@@ -1630,15 +2067,33 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
             </div>
             <div>
               <h3 className="font-semibold text-sm">AI智能对话</h3>
-              <p className="text-[10px] text-indigo-200">企业数据分析助手</p>
+              <p className="text-[10px] text-indigo-200">五所经验数据查询助手</p>
             </div>
           </div>
-          <button
-            onClick={onToggle}
-            className="p-1.5 rounded-lg hover:bg-white/10 transition"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-1.5 text-[10px] text-indigo-100">
+              <span className="hidden sm:inline">以</span>
+              <select
+                value={chatRole}
+                onChange={(e) => setChatRole(e.target.value as UserRole)}
+                className="bg-white/15 border border-white/25 rounded-md px-2 py-1 text-[10px] text-white focus:outline-none focus:ring-1 focus:ring-white/50"
+                title="提问身份，影响密级拦截与字段脱敏，并记入查询日志"
+              >
+                {(Object.keys(ROLE_PERMISSIONS) as UserRole[]).map((role) => (
+                  <option key={role} value={role} className="text-slate-800">
+                    {ROLE_PERMISSIONS[role].name}
+                  </option>
+                ))}
+              </select>
+              <span className="hidden sm:inline">身份提问</span>
+            </label>
+            <button
+              onClick={onToggle}
+              className="p-1.5 rounded-lg hover:bg-white/10 transition"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         {/* Messages Area */}
@@ -1723,6 +2178,35 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
                   </div>
                 )}
 
+                {/* 配置中心：指标口径 / 维度映射 */}
+                {message.type === 'metric-explanation' && message.resolveResult && (
+                  <div className="mt-3">
+                    {renderMetricExplanation(message.resolveResult)}
+                  </div>
+                )}
+
+                {/* 配置中心：拒绝 */}
+                {message.type === 'config-refusal' && message.resolveResult && (
+                  <div className="mt-3">
+                    {renderConfigRefusal(message.resolveResult)}
+                  </div>
+                )}
+
+                {/* 四个方向分析：图表优先 */}
+                {message.type === 'mock-analysis' && message.analysis && (
+                  <div className="mt-3">
+                    <ChatAnalysisCard section={message.analysis} />
+                  </div>
+                )}
+
+                {/* 模拟数据来源标注 */}
+                {message.role === 'assistant' && message.type && MOCK_DERIVED_TYPES.has(message.type) && (
+                  <p className="mt-2 flex items-center gap-1 px-1 text-[10px] text-amber-600">
+                    <Database className="h-3 w-3 shrink-0" />
+                    本回复基于系统内置模拟数据计算，非真实业务查询结果。
+                  </p>
+                )}
+
                 {/* Message Footer */}
                 <div className="flex items-center gap-2 mt-1.5 px-1">
                   <span className="text-[10px] text-slate-400 flex items-center gap-1">
@@ -1797,7 +2281,7 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="询问企业信息、合同数据、统计分析..."
+              placeholder="查询五所经验数据、企业信息、合同数据..."
               className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
             />
             <button

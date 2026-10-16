@@ -1025,12 +1025,6 @@ export default function DashboardModule({
               <h3 className="font-semibold text-slate-900 text-sm">赛宝核心合作伙伴往来总览</h3>
               <p className="text-xs text-slate-400">最近汇总签约数据及对接活跃情况评估，支持快速导向深层画像</p>
             </div>
-            <button 
-              onClick={() => onNavigateToTab('enterpriseSearch')}
-              className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition"
-            >
-              高级多维筛选
-            </button>
           </div>
 
           <div className="overflow-x-auto">
