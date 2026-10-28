@@ -5,7 +5,6 @@
 
 import React, { useState, useMemo } from 'react';
 import { COMP_MOCK_LIST } from '../data/mockData';
-import { Company } from '../types';
 import {
   Search,
   SlidersHorizontal,
@@ -180,6 +179,17 @@ export default function SearchModule({ onNavigateToCompany }: SearchModuleProps)
     '阿里': ['阿里', '阿里巴巴', '巴巴', 'ALI'],
     '字节': ['字节', '字节跳动', '字节跃动'],
     '小米': ['小米', '米厂', 'MI'],
+    '中芯国际': ['中芯国际', '中芯', 'SMIC', 'smic'],
+    '大疆': ['大疆', 'DJI', 'dji', '大疆创新'],
+    '迈瑞': ['迈瑞', '迈瑞医疗', 'Mindray', 'mindray'],
+    '联影': ['联影', '联影医疗', 'United Imaging'],
+    '航空工业': ['航空工业', 'AVIC', '中国航空工业集团'],
+    '成飞': ['成飞', '成都飞机工业', 'Chengdu Aircraft'],
+    '隆基': ['隆基', '隆基绿能', 'LONGi', 'longi'],
+    '长江存储': ['长江存储', '长存', 'YMTC', 'ymtc'],
+    '宁德时代': ['宁德时代', '宁德', 'CATL', 'catl'],
+    '京东方': ['京东方', 'BOE', 'boe'],
+    '科大讯飞': ['科大讯飞', '讯飞', 'iFlytek', 'iflytek'],
   };
 
   // 行业关键词映射
@@ -304,6 +314,22 @@ export default function SearchModule({ onNavigateToCompany }: SearchModuleProps)
     const query = searchQuery.toLowerCase();
     const conditions: any[] = [];
 
+    // 解析企业别名
+    for (const [company, aliases] of Object.entries(COMPANY_ALIASES)) {
+      if (aliases.some(alias => query.includes(alias.toLowerCase()))) {
+        conditions.push({ type: 'company', label: '企业名称', value: company, color: 'rose' });
+        break;
+      }
+    }
+
+    // 解析行业关键词
+    for (const [industry, keywords] of Object.entries(INDUSTRY_KEYWORDS)) {
+      if (keywords.some(keyword => query.includes(keyword.toLowerCase()))) {
+        conditions.push({ type: 'industry', label: '行业类型', value: industry, color: 'purple' });
+        break;
+      }
+    }
+
     // 解析合作时间段
     if (query.includes('2023') || query.includes('2024') || query.includes('近两年') || query.includes('近一年') || query.includes('本年度')) {
       if (query.includes('2023')) conditions.push({ type: 'time', label: '合作时间', value: '2023年', color: 'blue' });
@@ -400,7 +426,8 @@ export default function SearchModule({ onNavigateToCompany }: SearchModuleProps)
       { keywords: ['华北', '北京', '天津'], value: '华北地区' },
       { keywords: ['华东', '上海', '江苏', '浙江'], value: '华东地区' },
       { keywords: ['华中', '湖北', '湖南'], value: '华中地区' },
-      { keywords: ['西北', '西安'], value: '西北地区' }
+      { keywords: ['西北', '西安'], value: '西北地区' },
+      { keywords: ['西南', '四川', '重庆', '成都'], value: '西南地区' }
     ];
 
     regions.forEach(region => {
@@ -486,9 +513,17 @@ export default function SearchModule({ onNavigateToCompany }: SearchModuleProps)
             if (condition.value === '100-500万') return totalAmount > 0 && totalAmount < 500;
             return true;
 
-          case 'partnership':
+          case 'partnership': {
             // 合作层级过滤
-            return company.partnershipLevel.includes(condition.value.replace('合作伙伴', '').replace('企业', ''));
+            const target = String(condition.value);
+            if (target.includes('战略')) return company.partnershipLevel === '战略级合作伙伴';
+            if (target.includes('核心供应商')) return company.partnershipLevel === '核心供应商';
+            if (target.includes('意向')) return company.partnershipLevel === '意向客户';
+            if (target.includes('长期')) {
+              return company.growthCategory === '稳健型' || company.growthCategory === '成熟型';
+            }
+            return true;
+          }
 
           case 'growth':
             // 增长类别过滤
@@ -519,18 +554,21 @@ export default function SearchModule({ onNavigateToCompany }: SearchModuleProps)
             return company.address.includes(condition.value.replace('地区', '')) ||
                    company.tags.otherTags.some(tag => tag.includes(condition.value.replace('地区', '')));
 
-          case 'tag':
+          case 'tag': {
             // 标签过滤
-            if (condition.value === '中国百强企业') {
+            const target = String(condition.value);
+            if (target === '中国百强企业') {
               return company.tags.coreDivision.some(tag => tag.includes('百强'));
             }
-            if (condition.value === '上市企业') {
+            if (target === '上市企业') {
               return company.type.includes('上市');
             }
-            if (condition.value === '高新技术企业') {
-              return company.tags.coreDivision.some(tag => tag.includes('高新') || tag.includes('科技'));
-            }
-            return true;
+            return [
+              ...company.tags.coreDivision,
+              ...company.tags.businessPreference,
+              ...company.tags.otherTags,
+            ].some(tag => tag.includes(target) || target.includes(tag));
+          }
 
           default:
             return true;
@@ -598,7 +636,6 @@ export default function SearchModule({ onNavigateToCompany }: SearchModuleProps)
     const newQuery = searchQuery.trim() ? `${searchQuery} ${tagText}` : tagText;
     setSearchQuery(newQuery);
     setSearchSuggestions([]);
-    setParsedConditions(parseSearchQuery);
   };
 
   const handleSearch = () => {
@@ -607,7 +644,6 @@ export default function SearchModule({ onNavigateToCompany }: SearchModuleProps)
 
     // 使用自然语言智能解析
     setTimeout(() => {
-      setParsedConditions(parseNaturalLanguageQuery);
       setIsSearching(false);
     }, 1500);
   };
@@ -695,272 +731,6 @@ export default function SearchModule({ onNavigateToCompany }: SearchModuleProps)
 
   const hasActiveSearch = parseSearchQuery.length > 0;
 
-  // 对比功能已移除
-  if (false) {
-    const comparingCompanies = [];
-    // 计算累计合作金额
-    const calculateTotalCooperationAmount = (company: Company) => {
-      if (!company.cooperationContracts || company.cooperationContracts.length === 0) {
-        const latestMetrics = company.metrics[company.metrics.length - 1];
-        return latestMetrics
-          ? Object.values(latestMetrics).slice(1).reduce((a, b) => (a as number) + (b as number), 0) as number
-          : 0;
-      }
-      return company.cooperationContracts.reduce((sum, contract) => sum + contract.amount, 0);
-    };
-
-    // 计算三年增长率
-    const calculateThreeYearGrowth = (company: Company) => {
-      const metrics2022 = company.metrics.find(m => m.year === '2022');
-      const metrics2024 = company.metrics.find(m => m.year === '2024');
-      if (!metrics2022 || !metrics2024) return 'N/A';
-
-      const total2022 = Object.values(metrics2022).slice(1).reduce((a, b) => (a as number) + (b as number), 0) as number;
-      const total2024 = Object.values(metrics2024).slice(1).reduce((a, b) => (a as number) + (b as number), 0) as number;
-
-      if (total2022 === 0) return 'N/A';
-      const growth = ((total2024 - total2022) / total2022 * 100).toFixed(1);
-      return `${growth}%`;
-    };
-
-    return (
-      <div className="space-y-6">
-        {/* Comparison Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setComparisonActive(false)}
-              className="p-2 rounded-full hover:bg-slate-100 text-slate-500 transition"
-            >
-              <X className="h-5 w-5" />
-            </button>
-            <div>
-              <h3 className="font-semibold text-slate-900 text-lg">企业对比分析</h3>
-              <p className="text-xs text-slate-400">已选择 {compareIds.length} 家企业进行多维度对比</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Comparison Table */}
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <table className="w-full text-xs">
-            <thead className="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th className="py-3 px-4 text-left font-semibold text-slate-700 w-32">对比维度</th>
-                {comparingCompanies.map(comp => (
-                  <th key={comp.id} className="py-3 px-4 text-center font-semibold text-slate-700">
-                    {comp.name.slice(0, 6)}...
-                  </th>
-                ))}
-                <th className="py-3 px-4 text-center font-semibold text-slate-700 w-16">最优</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {/* AI质量评分 */}
-              <tr className="hover:bg-slate-50">
-                <td className="py-3 px-4 font-medium text-slate-700">AI质量评分</td>
-                {comparingCompanies.map(comp => {
-                  const isBest = comp.aiScore === Math.max(...comparingCompanies.map(c => c.aiScore));
-                  return (
-                    <td key={comp.id} className="py-3 px-4 text-center">
-                      <span className={`font-mono font-bold ${isBest ? 'text-emerald-600' : 'text-slate-700'}`}>
-                        {comp.aiScore}分
-                      </span>
-                      {isBest && <span className="ml-1 text-[10px] text-emerald-500">★</span>}
-                    </td>
-                  );
-                })}
-                <td className="py-3 px-4 text-center text-[10px] text-slate-400">最高</td>
-              </tr>
-
-              {/* 合规评分 */}
-              <tr className="hover:bg-slate-50">
-                <td className="py-3 px-4 font-medium text-slate-700">合规评分</td>
-                {comparingCompanies.map(comp => {
-                  const isBest = comp.complianceRating === Math.max(...comparingCompanies.map(c => c.complianceRating));
-                  return (
-                    <td key={comp.id} className="py-3 px-4 text-center">
-                      <span className={`font-mono font-bold ${isBest ? 'text-emerald-600' : 'text-slate-700'}`}>
-                        {comp.complianceRating}%
-                      </span>
-                      {isBest && <span className="ml-1 text-[10px] text-emerald-500">★</span>}
-                    </td>
-                  );
-                })}
-                <td className="py-3 px-4 text-center text-[10px] text-slate-400">最高</td>
-              </tr>
-
-              {/* 风险指数 */}
-              <tr className="hover:bg-slate-50">
-                <td className="py-3 px-4 font-medium text-slate-700">风险指数</td>
-                {comparingCompanies.map(comp => {
-                  const isBest = comp.riskIndex === Math.min(...comparingCompanies.map(c => c.riskIndex));
-                  return (
-                    <td key={comp.id} className="py-3 px-4 text-center">
-                      <span className={`font-mono font-bold ${isBest ? 'text-emerald-600' : comp.riskIndex > 15 ? 'text-rose-600' : 'text-slate-700'}`}>
-                        {comp.riskIndex}%
-                      </span>
-                      {isBest && <span className="ml-1 text-[10px] text-emerald-500">★</span>}
-                    </td>
-                  );
-                })}
-                <td className="py-3 px-4 text-center text-[10px] text-slate-400">最低</td>
-              </tr>
-
-              {/* 累计合作金额 */}
-              <tr className="hover:bg-slate-50">
-                <td className="py-3 px-4 font-medium text-slate-700">累计合作金额</td>
-                {comparingCompanies.map(comp => {
-                  const amount = calculateTotalCooperationAmount(comp);
-                  const isBest = amount === Math.max(...comparingCompanies.map(c => calculateTotalCooperationAmount(c)));
-                  return (
-                    <td key={comp.id} className="py-3 px-4 text-center">
-                      <span className={`font-mono font-bold ${isBest ? 'text-emerald-600' : 'text-slate-700'}`}>
-                        ¥{amount.toLocaleString()}万
-                      </span>
-                      {isBest && <span className="ml-1 text-[10px] text-emerald-500">★</span>}
-                    </td>
-                  );
-                })}
-                <td className="py-3 px-4 text-center text-[10px] text-slate-400">最高</td>
-              </tr>
-
-              {/* 三年增长率 */}
-              <tr className="hover:bg-slate-50">
-                <td className="py-3 px-4 font-medium text-slate-700">三年增长率(2022-2024)</td>
-                {comparingCompanies.map(comp => {
-                  const growth = calculateThreeYearGrowth(comp);
-                  return (
-                    <td key={comp.id} className="py-3 px-4 text-center">
-                      <span className={`font-mono font-bold ${growth !== 'N/A' && parseFloat(growth) > 0 ? 'text-emerald-600' : 'text-slate-700'}`}>
-                        {growth}
-                      </span>
-                    </td>
-                  );
-                })}
-                <td className="py-3 px-4 text-center text-[10px] text-slate-400">-</td>
-              </tr>
-
-              {/* 主要合作部门 */}
-              <tr className="hover:bg-slate-50">
-                <td className="py-3 px-4 font-medium text-slate-700">主要合作部门</td>
-                {comparingCompanies.map(comp => {
-                  const mainDept = comp.deptContributions.length > 0
-                    ? comp.deptContributions.reduce((prev, current) => current.ratio > prev.ratio ? current : prev)
-                    : null;
-                  return (
-                    <td key={comp.id} className="py-3 px-4 text-center">
-                      <div className="text-[10px] text-slate-700">
-                        {mainDept ? `${mainDept.name.slice(0, 10)}...` : 'N/A'}
-                        {mainDept && <div className="text-[9px] text-slate-400">{mainDept.ratio}%</div>}
-                      </div>
-                    </td>
-                  );
-                })}
-                <td className="py-3 px-4 text-center text-[10px] text-slate-400">-</td>
-              </tr>
-
-              {/* 2024年合作额 */}
-              <tr className="hover:bg-slate-50">
-                <td className="py-3 px-4 font-medium text-slate-700">2024年合作额</td>
-                {comparingCompanies.map(comp => {
-                  const metrics2024 = comp.metrics.find(m => m.year === '2024');
-                  const amount = metrics2024
-                    ? Object.values(metrics2024).slice(1).reduce((a, b) => (a as number) + (b as number), 0) as number
-                    : 0;
-                  const isBest = amount === Math.max(...comparingCompanies.map(c => {
-                    const m = c.metrics.find(m => m.year === '2024');
-                    return m ? Object.values(m).slice(1).reduce((a, b) => (a as number) + (b as number), 0) as number : 0;
-                  }));
-                  return (
-                    <td key={comp.id} className="py-3 px-4 text-center">
-                      <span className={`font-mono font-bold ${isBest ? 'text-emerald-600' : 'text-slate-700'}`}>
-                        ¥{amount.toLocaleString()}万
-                      </span>
-                      {isBest && <span className="ml-1 text-[10px] text-emerald-500">★</span>}
-                    </td>
-                  );
-                })}
-                <td className="py-3 px-4 text-center text-[10px] text-slate-400">最高</td>
-              </tr>
-
-              {/* 参保人数 */}
-              <tr className="hover:bg-slate-50">
-                <td className="py-3 px-4 font-medium text-slate-700">参保人数</td>
-                {comparingCompanies.map(comp => {
-                  const isBest = comp.insuredEmployees === Math.max(...comparingCompanies.map(c => c.insuredEmployees));
-                  return (
-                    <td key={comp.id} className="py-3 px-4 text-center">
-                      <span className={`font-mono font-bold ${isBest ? 'text-emerald-600' : 'text-slate-700'}`}>
-                        {comp.insuredEmployees}人
-                      </span>
-                      {isBest && <span className="ml-1 text-[10px] text-emerald-500">★</span>}
-                    </td>
-                  );
-                })}
-                <td className="py-3 px-4 text-center text-[10px] text-slate-400">最高</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        {/* Business Category Distribution Comparison */}
-        <div className="bg-white rounded-xl p-5 border border-slate-200">
-          <h4 className="font-semibold text-slate-900 text-sm mb-4">合作业务分类金额对比 (2024年)</h4>
-          <div className="space-y-4">
-            {['元器件筛选检测', '质量认证与安全评估', '高精计量与参数校准', '软硬件数字化开发支持', 'TSQ人才职业效能检验培训'].map((category, idx) => (
-              <div key={idx} className="space-y-2">
-                <div className="text-xs font-medium text-slate-700">{category}</div>
-                <div className="space-y-1">
-                  {comparingCompanies.map((comp, compIdx) => {
-                    const metrics2024 = comp.metrics.find(m => m.year === '2024');
-                    let value = 0;
-                    if (metrics2024) {
-                      if (idx === 0) value = metrics2024.testingAmount;
-                      else if (idx === 1) value = metrics2024.certAmount;
-                      else if (idx === 2) value = metrics2024.calibrationAmount;
-                      else if (idx === 3) value = metrics2024.devAmount;
-                      else if (idx === 4) value = metrics2024.trainingAmount;
-                    }
-                    const maxValue = 6000;
-                    const percent = (value / maxValue) * 100;
-                    const colors = ['bg-indigo-500', 'bg-sky-500', 'bg-emerald-500'];
-                    const color = colors[compIdx % colors.length];
-
-                    return (
-                      <div key={comp.id} className="flex items-center gap-2">
-                        <span className="text-[10px] text-slate-500 w-16 truncate">{comp.name.slice(0, 6)}...</span>
-                        <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
-                          <div
-                            className={`h-full ${color} rounded-full transition-all duration-700`}
-                            style={{ width: `${percent}%` }}
-                          />
-                        </div>
-                        <span className="text-[10px] font-mono text-slate-700 w-16 text-right">¥{value}万</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex justify-center gap-4">
-          {comparingCompanies.map(comp => (
-            <button
-              key={comp.id}
-              onClick={() => onNavigateToCompany(comp.id)}
-              className="px-6 py-2.5 text-xs bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium"
-            >
-              查看{comp.name.slice(0, 4)}...完整画像
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -1200,7 +970,7 @@ export default function SearchModule({ onNavigateToCompany }: SearchModuleProps)
                           <div className="w-20 bg-slate-100 rounded-full h-1.5 overflow-hidden">
                             <div
                               className="h-full bg-indigo-500 rounded-full"
-                              style={{ width: `${(count / groupAnalysisResult.totalCompanies) * 100}%` }}
+                              style={{ width: `${(Number(count) / groupAnalysisResult.totalCompanies) * 100}%` }}
                             />
                           </div>
                           <span className="font-mono text-slate-700 w-8 text-right">{count}家</span>
@@ -1221,7 +991,7 @@ export default function SearchModule({ onNavigateToCompany }: SearchModuleProps)
                           <div className="w-20 bg-slate-100 rounded-full h-1.5 overflow-hidden">
                             <div
                               className="h-full bg-emerald-500 rounded-full"
-                              style={{ width: `${(count / groupAnalysisResult.totalCompanies) * 100}%` }}
+                              style={{ width: `${(Number(count) / groupAnalysisResult.totalCompanies) * 100}%` }}
                             />
                           </div>
                           <span className="font-mono text-slate-700 w-8 text-right">{count}家</span>

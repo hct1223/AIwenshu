@@ -4,8 +4,9 @@
  */
 
 import { Company, GroupData } from '../types';
+import { SEARCH_MOCK_COMPANIES } from './searchMockCompanies';
 
-export const COMP_MOCK_LIST: Company[] = [
+const BASE_COMP_MOCK_LIST: Company[] = [
   {
     id: 'comp-huawei-tech',
     name: '华为技术有限公司',
@@ -330,6 +331,11 @@ export const COMP_MOCK_LIST: Company[] = [
       }
     ]
   }
+];
+
+export const COMP_MOCK_LIST: Company[] = [
+  ...BASE_COMP_MOCK_LIST,
+  ...SEARCH_MOCK_COMPANIES,
 ];
 
 export const GROUP_MOCK_LIST: GroupData[] = [
