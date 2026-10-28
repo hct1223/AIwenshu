@@ -37,6 +37,9 @@ interface DashboardProps {
   onOpenAIChat?: () => void;
 }
 
+// 大盘分析功能开关：保留开关，便于后续按需控制入口与结果面板
+const DASHBOARD_ANALYSIS_ENABLED = true;
+
 export default function DashboardModule({
   onNavigateToCompany,
   onNavigateToGroup,
@@ -177,19 +180,21 @@ export default function DashboardModule({
             AI 智能对话
             <ChevronRight className="h-3 w-3" />
           </button>
-          <button
-            id="btn-dashboard-analysis"
-            onClick={handleDashboardAnalysis}
-            className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white shadow-xs hover:bg-emerald-700 transition"
-          >
-            大盘分析
-            <Sparkles className="h-3 w-3" />
-          </button>
+          {DASHBOARD_ANALYSIS_ENABLED && (
+            <button
+              id="btn-dashboard-analysis"
+              onClick={handleDashboardAnalysis}
+              className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white shadow-xs hover:bg-emerald-700 transition"
+            >
+              大盘分析
+              <Sparkles className="h-3 w-3" />
+            </button>
+          )}
         </div>
       </div>
 
       {/* Dashboard Analysis Results */}
-      {analysisActive && (
+      {DASHBOARD_ANALYSIS_ENABLED && analysisActive && (
         <div className="bg-gradient-to-br from-emerald-50 to-white rounded-xl p-5 border border-emerald-100 shadow-xs">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">

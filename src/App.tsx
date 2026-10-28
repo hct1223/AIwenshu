@@ -136,11 +136,12 @@ export default function App() {
     }
   };
 
-  // 已隐藏模块：企业管理(enterpriseManagement)、企业搜索(enterpriseSearch)、
-  // 情报速递(intelligence)、知识库管理(knowledge)。
-  // 对应路由与组件仍保留在 renderModule 中，需要恢复时把条目加回本数组即可。
   const navMenuItems = [
     { id: 'dashboard', label: '数据大盘研判', desc: 'Cockpit overview', icon: LayoutDashboard },
+    { id: 'enterpriseManagement', label: '企业管理', desc: 'Enterprise & Group management', icon: Building2 },
+    { id: 'enterpriseSearch', label: '企业搜索', desc: 'Enterprise search', icon: SearchCode },
+    { id: 'intelligence', label: '情报速递', desc: 'Intelligence system', icon: Radar },
+    { id: 'knowledge', label: '知识库管理', desc: 'Knowledge base system', icon: Database },
     { id: 'metricConfig', label: '数据指标配置', desc: 'Metric & dimension center', icon: BarChart3 },
   ];
 
