@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "test:contracts": "tsx --test src/data/contractData.test.ts src/data/contractExcel.test.ts src/data/contractQuery.test.ts src/components/contracts/ContractManagementModule.test.tsx"
+    "test:contracts": "tsx --test src/data/contractData.test.ts src/data/contractExcel.test.ts src/data/contractQuery.test.ts src/components/contracts/ContractManagementModule.test.tsx",
+    "test:insights": "tsx --test src/data/businessInsightMock.test.ts src/data/businessInsightExcel.test.ts src/components/BusinessInsightCard.test.tsx"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

@@ -26,6 +26,7 @@ import {
   Download,
   Share2,
   Table2,
+  BarChart3,
   Ban,
   ShieldAlert,
   ArrowRight,
@@ -47,8 +48,10 @@ import {
 } from '../data/metricEngine';
 import { MOCK_DERIVED_TYPES, buildDirectionalAnalysis, type AnalysisSection } from '../data/mockAnalysis';
 import { answerContractQuery, isContractManagementQuery, type ContractQueryResult } from '../data/contractQuery';
+import { answerBusinessInsightQuery, type BusinessInsightQueryResult } from '../data/businessInsightMock';
 import { useContracts } from '../context/ContractContext';
 import ChatAnalysisCard from './ChatAnalysisCard';
+import BusinessInsightCard from './BusinessInsightCard';
 import {
   callableBadgeClass,
   notCallableBadgeClass,
@@ -60,7 +63,7 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
-  type?: 'text' | 'company-profile' | 'company-comparison' | 'group-profile' | 'group-comparison' | 'statistics' | 'contract-info' | 'contract-management' | 'monthly-report' | 'annual-report' | 'metric-explanation' | 'config-refusal' | 'mock-analysis';
+  type?: 'text' | 'company-profile' | 'company-comparison' | 'group-profile' | 'group-comparison' | 'statistics' | 'contract-info' | 'contract-management' | 'business-insight' | 'monthly-report' | 'annual-report' | 'metric-explanation' | 'config-refusal' | 'mock-analysis';
   companies?: Company[];
   groups?: GroupData[];
   comparisonData?: any;
@@ -72,6 +75,8 @@ interface Message {
   analysis?: AnalysisSection;
   /** 合同管理问答结果 */
   contractQuery?: ContractQueryResult;
+  /** 月度、年度、地区、归因与流失预警的预制业务洞察结果 */
+  businessInsight?: BusinessInsightQueryResult;
 }
 
 interface AIChatSidebarProps {
@@ -611,6 +616,25 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
           setIsTyping(false);
           return;
         }
+      }
+
+      // 预制业务洞察场景：优先级高于通用统计和方向分析，确保金额、地区、
+      // 归因、流失预警问题得到结构化且可复现的结果。
+      const businessInsight = answerBusinessInsightQuery(currentQuery);
+      if (businessInsight) {
+        setMessages(prev => [
+          ...prev,
+          {
+            id: (Date.now() + 1).toString(),
+            role: 'assistant',
+            content: '已基于预制业务模拟数据生成结果，请查看下方明细与结论。',
+            timestamp: new Date(),
+            type: 'business-insight',
+            businessInsight,
+          }
+        ]);
+        setIsTyping(false);
+        return;
       }
 
       // —— 欢迎语承诺的四个方向：基于模拟数据作答 ——
@@ -2259,6 +2283,11 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
                   </div>
                 )}
 
+                {/* 月度、年度、地区、归因与流失预警 */}
+                {message.type === 'business-insight' && message.businessInsight && (
+                  <BusinessInsightCard result={message.businessInsight} />
+                )}
+
                 {/* 企业画像卡片 */}
                 {message.type === 'company-profile' && message.companies && (
                   <div className="mt-3 space-y-3">
@@ -2402,6 +2431,27 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
             >
               <FileText className="h-3 w-3" />
               查最近合同
+            </button>
+            <button
+              onClick={() => setInputValue('2026年月度合作金额列表')}
+              className="px-3 py-1.5 bg-gradient-to-r from-indigo-100 to-blue-100 hover:from-indigo-200 hover:to-blue-200 rounded-lg text-[11px] font-medium text-indigo-700 transition flex items-center gap-1"
+            >
+              <BarChart3 className="h-3 w-3" />
+              月度金额
+            </button>
+            <button
+              onClick={() => setInputValue('华东客户下降归因')}
+              className="px-3 py-1.5 bg-gradient-to-r from-rose-100 to-orange-100 hover:from-rose-200 hover:to-orange-200 rounded-lg text-[11px] font-medium text-rose-700 transition flex items-center gap-1"
+            >
+              <TrendingUp className="h-3 w-3" />
+              下降归因
+            </button>
+            <button
+              onClick={() => setInputValue('最近三个月流失预警客户分布，列Top100名单')}
+              className="px-3 py-1.5 bg-gradient-to-r from-amber-100 to-yellow-100 hover:from-amber-200 hover:to-yellow-200 rounded-lg text-[11px] font-medium text-amber-700 transition flex items-center gap-1"
+            >
+              <AlertTriangle className="h-3 w-3" />
+              流失预警
             </button>
           </div>
 
