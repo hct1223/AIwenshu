@@ -280,6 +280,7 @@ export default function App() {
       <AIChatSidebar
         isOpen={aiChatOpen}
         onToggle={() => setAiChatOpen(!aiChatOpen)}
+        onClose={() => setAiChatOpen(false)}
         currentPage={activeTab}
         onNavigateToTab={(tabId) => {
           setContractAiQuery(null);
@@ -292,6 +293,10 @@ export default function App() {
         onNavigateToCompany={(id) => {
           setActiveCompanyId(id);
           setActiveTab('enterprisePortrait');
+        }}
+        onNavigateToGroup={(id) => {
+          setActiveGroupId(id);
+          setActiveTab('groupPortrait');
         }}
       />
 

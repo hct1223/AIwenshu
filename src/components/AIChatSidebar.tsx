@@ -52,6 +52,8 @@ import { answerBusinessInsightQuery, type BusinessInsightQueryResult } from '../
 import { useContracts } from '../context/ContractContext';
 import ChatAnalysisCard from './ChatAnalysisCard';
 import BusinessInsightCard from './BusinessInsightCard';
+import ProfileLink from './ProfileLink';
+import { navigateToProfile } from '../utils/profileNavigation';
 import {
   callableBadgeClass,
   notCallableBadgeClass,
@@ -82,6 +84,7 @@ interface Message {
 interface AIChatSidebarProps {
   isOpen: boolean;
   onToggle: () => void;
+  onClose?: () => void;
   onNavigateToCompany?: (id: string) => void;
   onNavigateToGroup?: (id: string) => void;
   onNavigateToTab?: (tabId: string) => void;
@@ -108,7 +111,7 @@ const formatContractQueryContent = (result: ContractQueryResult): string => {
   return `共找到 ${result.totalCount} 份合同，合计 ${formatContractAmount(result.totalAmount)}。\n\n${lines.join('\n\n')}`;
 };
 
-export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, onNavigateToGroup, onNavigateToTab, onOpenContractQuery, currentPage = 'dashboard' }: AIChatSidebarProps) {
+export default function AIChatSidebar({ isOpen, onToggle, onClose, onNavigateToCompany, onNavigateToGroup, onNavigateToTab, onOpenContractQuery, currentPage = 'dashboard' }: AIChatSidebarProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -896,6 +899,14 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
     return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
   };
 
+  const openCompanyPortrait = (companyId: string) => {
+    navigateToProfile(companyId, onNavigateToCompany, onClose ?? onToggle);
+  };
+
+  const openGroupPortrait = (groupId: string) => {
+    navigateToProfile(groupId, onNavigateToGroup, onClose ?? onToggle);
+  };
+
   // 渲染企业画像卡片
   const renderCompanyCard = (company: Company, messageId: string) => {
     const cardId = `${messageId}-${company.id}`;
@@ -910,9 +921,7 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
       if ((e.target as HTMLElement).closest('button')) {
         return;
       }
-      if (onNavigateToCompany) {
-        onNavigateToCompany(company.id);
-      }
+      openCompanyPortrait(company.id);
     };
 
     return (
@@ -932,7 +941,7 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h4 className="font-semibold text-slate-900 text-sm truncate">{company.name}</h4>
-              <span className="text-[10px] text-indigo-600 whitespace-nowrap">点击查看完整画像 →</span>
+              <ProfileLink onOpen={() => openCompanyPortrait(company.id)} />
             </div>
             <p className="text-xs text-slate-500">{company.industry}</p>
             <div className="flex items-center gap-2 mt-1.5">
@@ -1164,9 +1173,7 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
       if ((e.target as HTMLElement).closest('button')) {
         return;
       }
-      if (onNavigateToGroup) {
-        onNavigateToGroup(group.id);
-      }
+      openGroupPortrait(group.id);
     };
 
     return (
@@ -1183,7 +1190,7 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h4 className="font-semibold text-slate-900 text-sm truncate">{group.name}</h4>
-              <span className="text-[10px] text-indigo-600 whitespace-nowrap">点击查看完整画像 →</span>
+              <ProfileLink onOpen={() => openGroupPortrait(group.id)} />
             </div>
             <p className="text-xs text-slate-500 truncate">{group.controllingEntity}</p>
             <div className="flex items-center gap-2 mt-1.5">
