@@ -35,6 +35,7 @@ import MetricConfigModule from './components/MetricConfigModule';
 import AIChatSidebar from './components/AIChatSidebar';
 import { MetricConfigProvider } from './context/MetricConfigContext';
 import { ContractProvider } from './context/ContractContext';
+import type { ContractQueryResult } from './data/contractQuery';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
@@ -42,6 +43,7 @@ export default function App() {
   const [activeGroupId, setActiveGroupId] = useState<string>('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [aiChatOpen, setAiChatOpen] = useState<boolean>(false);
+  const [contractAiQuery, setContractAiQuery] = useState<ContractQueryResult | null>(null);
 
   // Dynamic router to switch views
   const renderModule = () => {
@@ -58,6 +60,7 @@ export default function App() {
               setActiveTab('groupPortrait');
             }}
             onNavigateToTab={(tabId) => {
+              setContractAiQuery(null);
               setActiveTab(tabId);
             }}
             onOpenAIChat={() => setAiChatOpen(true)}
@@ -119,7 +122,13 @@ export default function App() {
           />
         );
       case 'contractManagement':
-        return <ContractManagementModule onOpenAIChat={() => setAiChatOpen(true)} />;
+        return (
+          <ContractManagementModule
+            onOpenAIChat={() => setAiChatOpen(true)}
+            aiQuery={contractAiQuery}
+            onClearAiQuery={() => setContractAiQuery(null)}
+          />
+        );
       case 'intelligence':
         return <IntelligenceModule />;
       case 'knowledge':
@@ -199,6 +208,9 @@ export default function App() {
                   key={menu.id}
                   id={`sidebar-tab-button-${menu.id}`}
                   onClick={() => {
+                    if (menu.id === 'contractManagement') {
+                      setContractAiQuery(null);
+                    }
                     setActiveTab(menu.id);
                     setMobileMenuOpen(false);
                   }}
@@ -270,7 +282,12 @@ export default function App() {
         onToggle={() => setAiChatOpen(!aiChatOpen)}
         currentPage={activeTab}
         onNavigateToTab={(tabId) => {
+          setContractAiQuery(null);
           setActiveTab(tabId);
+        }}
+        onOpenContractQuery={(result) => {
+          setContractAiQuery(result);
+          setActiveTab('contractManagement');
         }}
         onNavigateToCompany={(id) => {
           setActiveCompanyId(id);

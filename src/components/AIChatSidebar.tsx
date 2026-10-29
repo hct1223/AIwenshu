@@ -85,6 +85,7 @@ interface AIChatSidebarProps {
   onNavigateToCompany?: (id: string) => void;
   onNavigateToGroup?: (id: string) => void;
   onNavigateToTab?: (tabId: string) => void;
+  onOpenContractQuery?: (result: ContractQueryResult) => void;
   currentPage?: string;
 }
 
@@ -107,7 +108,7 @@ const formatContractQueryContent = (result: ContractQueryResult): string => {
   return `共找到 ${result.totalCount} 份合同，合计 ${formatContractAmount(result.totalAmount)}。\n\n${lines.join('\n\n')}`;
 };
 
-export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, onNavigateToGroup, onNavigateToTab, currentPage = 'dashboard' }: AIChatSidebarProps) {
+export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, onNavigateToGroup, onNavigateToTab, onOpenContractQuery, currentPage = 'dashboard' }: AIChatSidebarProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -2269,10 +2270,16 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
                         </div>
                       )}
 
-                      {onNavigateToTab && (
+                      {(onNavigateToTab || onOpenContractQuery) && (
                         <button
                           type="button"
-                          onClick={() => onNavigateToTab('contractManagement')}
+                          onClick={() => {
+                            if (onOpenContractQuery && message.contractQuery) {
+                              onOpenContractQuery(message.contractQuery);
+                            } else {
+                              onNavigateToTab?.('contractManagement');
+                            }
+                          }}
                           className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-medium text-white transition hover:bg-indigo-700"
                         >
                           打开合同管理

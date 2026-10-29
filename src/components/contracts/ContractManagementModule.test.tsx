@@ -4,6 +4,8 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ContractProvider } from '../../context/ContractContext.tsx';
 import ContractManagementModule from './ContractManagementModule.tsx';
+import { buildSeedContracts } from '../../data/contractData.ts';
+import { answerContractQuery } from '../../data/contractQuery.ts';
 
 test('renders contract management controls and the supplied Excel fields', () => {
   const html = renderToStaticMarkup(
@@ -25,4 +27,18 @@ test('renders contract management controls and the supplied Excel fields', () =>
   assert.match(html, /客户单位联系人/);
   assert.match(html, /客户单位联系电话/);
   assert.match(html, /提交时间/);
+});
+
+test('renders only the contracts returned by an AI query', () => {
+  const query = answerContractQuery('腾讯有哪些合同', buildSeedContracts());
+  assert.ok(query);
+  const html = renderToStaticMarkup(
+    <ContractProvider>
+      <ContractManagementModule aiQuery={query} onClearAiQuery={() => {}} />
+    </ContractProvider>
+  );
+
+  assert.match(html, /AI 查询结果/);
+  assert.match(html, /腾讯科技（深圳）有限公司/);
+  assert.doesNotMatch(html, /华为技术有限公司/);
 });

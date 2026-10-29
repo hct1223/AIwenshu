@@ -18,6 +18,7 @@ export interface ContractQueryGroup {
 }
 
 export interface ContractQueryResult {
+  query: string;
   mode: ContractQueryMode;
   records: ContractRecord[];
   totalCount: number;
@@ -68,23 +69,24 @@ const summarizeGroups = (
     .sort((left, right) => right.amount - left.amount);
 };
 
-const makeResult = (
-  mode: ContractQueryMode,
-  records: ContractRecord[],
-  groups?: ContractQueryGroup[],
-): ContractQueryResult => ({
-  mode,
-  records,
-  totalCount: records.length,
-  totalAmount: records.reduce((sum, record) => sum + record.amount, 0),
-  groups,
-});
-
 export function answerContractQuery(
   query: string,
   records: ContractRecord[],
 ): ContractQueryResult | null {
   if (!isContractManagementQuery(query)) return null;
+
+  const makeResult = (
+    mode: ContractQueryMode,
+    matchedRecords: ContractRecord[],
+    groups?: ContractQueryGroup[],
+  ): ContractQueryResult => ({
+    query,
+    mode,
+    records: matchedRecords,
+    totalCount: matchedRecords.length,
+    totalAmount: matchedRecords.reduce((sum, record) => sum + record.amount, 0),
+    groups,
+  });
 
   if (/按部门|部门汇总|各部门/.test(query)) {
     return makeResult('department-summary', records, summarizeGroups(records, 'department'));

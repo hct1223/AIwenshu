@@ -25,6 +25,7 @@ test('summarizes all contracts and total amount', () => {
 test('filters contracts by customer alias', () => {
   const result = answerContractQuery('腾讯有哪些合同', records);
   assert.ok(result);
+  assert.equal(result.query, '腾讯有哪些合同');
   assert.ok(result.records.length > 0);
   assert.ok(result.records.every(record => record.customerName.includes('腾讯')));
 });

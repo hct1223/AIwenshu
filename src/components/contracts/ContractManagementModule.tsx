@@ -36,6 +36,7 @@ import {
   mergeImportPreview,
   type ContractImportPreview,
 } from '../../data/contractExcel.ts';
+import type { ContractQueryResult } from '../../data/contractQuery.ts';
 import { useContracts } from '../../context/ContractContext.tsx';
 import ContractFormModal, { type ContractFormMode } from './ContractFormModal.tsx';
 import ContractImportModal from './ContractImportModal.tsx';
@@ -56,6 +57,8 @@ type SortDirection = 'asc' | 'desc';
 
 interface ContractManagementModuleProps {
   onOpenAIChat?: () => void;
+  aiQuery?: ContractQueryResult | null;
+  onClearAiQuery?: () => void;
 }
 
 interface FormState {
@@ -81,7 +84,11 @@ const todayFilePart = () => new Date().toISOString().slice(0, 10);
 const formatAmount = (amount: number) =>
   `${amount.toLocaleString('zh-CN', { maximumFractionDigits: 2 })} 万元`;
 
-export default function ContractManagementModule({ onOpenAIChat }: ContractManagementModuleProps) {
+export default function ContractManagementModule({
+  onOpenAIChat,
+  aiQuery,
+  onClearAiQuery,
+}: ContractManagementModuleProps) {
   const { contracts, setContracts } = useContracts();
   const [filters, setFilters] = useState<ContractFilters>(DEFAULT_FILTERS);
   const [sortKey, setSortKey] = useState<SortKey>('submittedAt');
@@ -101,10 +108,15 @@ export default function ContractManagementModule({ onOpenAIChat }: ContractManag
     () => getUniqueContractOptions(contracts, 'businessType'),
     [contracts]
   );
-  const filteredContracts = useMemo(
+  const baseFilteredContracts = useMemo(
     () => filterContracts(contracts, filters),
     [contracts, filters]
   );
+  const filteredContracts = useMemo(() => {
+    if (!aiQuery) return baseFilteredContracts;
+    const queryIds = new Set(aiQuery.records.map(record => record.id));
+    return baseFilteredContracts.filter(record => queryIds.has(record.id));
+  }, [aiQuery, baseFilteredContracts]);
   const sortedContracts = useMemo(() => {
     const multiplier = sortDirection === 'asc' ? 1 : -1;
     return [...filteredContracts].sort((left, right) => {
@@ -153,6 +165,11 @@ export default function ContractManagementModule({ onOpenAIChat }: ContractManag
   };
 
   const resetFilters = () => setFilters(DEFAULT_FILTERS);
+
+  const clearAiQuery = () => {
+    resetFilters();
+    onClearAiQuery?.();
+  };
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -277,6 +294,29 @@ export default function ContractManagementModule({ onOpenAIChat }: ContractManag
           </button>
         </div>
       </div>
+
+      {aiQuery && (
+        <div className="flex flex-col gap-3 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-white">
+              <Sparkles className="h-4 w-4" />
+            </div>
+            <div>
+              <div className="text-xs font-semibold text-indigo-900">AI 查询结果</div>
+              <div className="mt-0.5 text-xs text-indigo-700">
+                “{aiQuery.query}” · 命中 {filteredContracts.length} 条合同
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={clearAiQuery}
+            className="shrink-0 rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100"
+          >
+            查看全部合同
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <div className="rounded-xl border border-slate-200 bg-white p-4">
