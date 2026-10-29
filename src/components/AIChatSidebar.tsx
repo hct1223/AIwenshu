@@ -46,6 +46,8 @@ import {
   type ResolveResult
 } from '../data/metricEngine';
 import { MOCK_DERIVED_TYPES, buildDirectionalAnalysis, type AnalysisSection } from '../data/mockAnalysis';
+import { answerContractQuery, isContractManagementQuery, type ContractQueryResult } from '../data/contractQuery';
+import { useContracts } from '../context/ContractContext';
 import ChatAnalysisCard from './ChatAnalysisCard';
 import {
   callableBadgeClass,
@@ -58,7 +60,7 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
-  type?: 'text' | 'company-profile' | 'company-comparison' | 'group-profile' | 'group-comparison' | 'statistics' | 'contract-info' | 'monthly-report' | 'annual-report' | 'metric-explanation' | 'config-refusal' | 'mock-analysis';
+  type?: 'text' | 'company-profile' | 'company-comparison' | 'group-profile' | 'group-comparison' | 'statistics' | 'contract-info' | 'contract-management' | 'monthly-report' | 'annual-report' | 'metric-explanation' | 'config-refusal' | 'mock-analysis';
   companies?: Company[];
   groups?: GroupData[];
   comparisonData?: any;
@@ -68,6 +70,8 @@ interface Message {
   resolveResult?: ResolveResult;
   /** 四个方向分析的结构化数据，用于渲染图表 */
   analysis?: AnalysisSection;
+  /** 合同管理问答结果 */
+  contractQuery?: ContractQueryResult;
 }
 
 interface AIChatSidebarProps {
@@ -75,15 +79,35 @@ interface AIChatSidebarProps {
   onToggle: () => void;
   onNavigateToCompany?: (id: string) => void;
   onNavigateToGroup?: (id: string) => void;
+  onNavigateToTab?: (tabId: string) => void;
   currentPage?: string;
 }
 
-export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, onNavigateToGroup, currentPage = 'dashboard' }: AIChatSidebarProps) {
+const formatContractAmount = (amount: number) =>
+  `¥${amount.toLocaleString('zh-CN', { maximumFractionDigits: 2 })} 万元`;
+
+const formatContractQueryContent = (result: ContractQueryResult): string => {
+  if (result.mode === 'department-summary' || result.mode === 'business-type-summary') {
+    const dimension = result.mode === 'department-summary' ? '主办部门' : '业务类型';
+    return `已按${dimension}汇总当前 ${result.totalCount} 份合同，合计 ${formatContractAmount(result.totalAmount)}。`;
+  }
+
+  if (result.totalCount === 0) {
+    return '未找到符合该条件的合同。可以尝试企业简称、部门名称、业务类型或部门合同号。';
+  }
+
+  const lines = result.records.slice(0, 5).map((record, index) =>
+    `${index + 1}. ${record.contractName}\n   ${record.customerName} · ${record.department} · ${formatContractAmount(record.amount)}\n   合同号：${record.departmentContractNo} · 提交时间：${record.submittedAt}`
+  );
+  return `共找到 ${result.totalCount} 份合同，合计 ${formatContractAmount(result.totalAmount)}。\n\n${lines.join('\n\n')}`;
+};
+
+export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, onNavigateToGroup, onNavigateToTab, currentPage = 'dashboard' }: AIChatSidebarProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       role: 'assistant',
-      content: '尊敬的领导，您好！欢迎使用中国赛宝实验室 AI 智能助手。\n\n本助手主要用于辅助查询五所的经验数据相关信息，整合全板块经营业务与重点大客户台账，同步实时风险预警信息，可快速为您提供：\n\n📊 企业整体经营概况\n📈 各业务板块运行数据\n👥 重点客户合作现状\n⚠️ 经营风险与项目预警\n\n等经验数据查询服务，请您输入查询需求。',
+      content: '尊敬的领导，您好！欢迎使用中国赛宝实验室 AI 智能助手。\n\n本助手主要用于辅助查询五所的经验数据相关信息，整合全板块经营业务与重点大客户台账，同步实时风险预警信息，可快速为您提供：\n\n📊 企业整体经营概况\n📈 各业务板块运行数据\n👥 重点客户合作现状\n📄 合同台账与金额汇总\n⚠️ 经营风险与项目预警\n\n等经验数据查询服务，请您输入查询需求。',
       timestamp: new Date()
     }
   ]);
@@ -103,6 +127,7 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
 
   // 配置中心：读取口径与记录查询日志
   const { config, logQuery } = useMetricConfig();
+  const { contracts: contractRecords } = useContracts();
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
@@ -565,6 +590,27 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
         logQuery(buildQueryLogEntry(currentQuery, chatRole, resolved, CONFIG_OPERATOR.name));
         setIsTyping(false);
         return;
+      }
+
+      // 合同管理问答：使用合同管理模块的共享台账，支持企业、部门、业务类型、
+      // 合同编号、最近合同和部门/业务汇总。
+      if (isContractManagementQuery(currentQuery)) {
+        const contractQuery = answerContractQuery(currentQuery, contractRecords);
+        if (contractQuery) {
+          setMessages(prev => [
+            ...prev,
+            {
+              id: (Date.now() + 1).toString(),
+              role: 'assistant',
+              content: formatContractQueryContent(contractQuery),
+              timestamp: new Date(),
+              type: 'contract-management',
+              contractQuery,
+            }
+          ]);
+          setIsTyping(false);
+          return;
+        }
       }
 
       // —— 欢迎语承诺的四个方向：基于模拟数据作答 ——
@@ -2136,6 +2182,83 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
                   </div>
                 )}
 
+                {/* 合同管理问答结果 */}
+                {message.type === 'contract-management' && message.contractQuery && (
+                  <div className="mt-3 overflow-hidden rounded-xl border border-indigo-100 bg-white shadow-sm">
+                    <div className="flex items-center justify-between border-b border-indigo-50 bg-indigo-50/70 px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-indigo-600" />
+                        <span className="text-xs font-semibold text-slate-900">合同台账查询结果</span>
+                      </div>
+                      <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-indigo-700">
+                        {message.contractQuery.totalCount} 份
+                      </span>
+                    </div>
+
+                    <div className="space-y-3 p-4">
+                      <div className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                        合同金额合计：
+                        <span className="ml-1 font-mono font-semibold text-emerald-700">
+                          {formatContractAmount(message.contractQuery.totalAmount)}
+                        </span>
+                      </div>
+
+                      {message.contractQuery.groups && (
+                        <div className="space-y-2">
+                          {message.contractQuery.groups.slice(0, 8).map(group => (
+                            <div key={group.label} className="flex items-center gap-2 text-[11px]">
+                              <span className="w-32 truncate text-slate-600" title={group.label}>{group.label}</span>
+                              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+                                <div
+                                  className="h-full rounded-full bg-indigo-500"
+                                  style={{
+                                    width: `${Math.max(
+                                      4,
+                                      (group.amount / Math.max(message.contractQuery!.totalAmount, 1)) * 100
+                                    )}%`,
+                                  }}
+                                />
+                              </div>
+                              <span className="w-24 text-right font-mono text-slate-600">
+                                {formatContractAmount(group.amount)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {!message.contractQuery.groups && message.contractQuery.records.length > 0 && (
+                        <div className="divide-y divide-slate-100">
+                          {message.contractQuery.records.slice(0, 5).map(record => (
+                            <div key={record.id} className="py-2.5 first:pt-0 last:pb-0">
+                              <div className="line-clamp-1 text-xs font-medium text-slate-800">
+                                {record.contractName}
+                              </div>
+                              <div className="mt-1 flex items-center justify-between gap-2 text-[10px] text-slate-400">
+                                <span className="truncate">{record.customerName} · {record.department}</span>
+                                <span className="shrink-0 font-mono font-semibold text-emerald-700">
+                                  {formatContractAmount(record.amount)}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {onNavigateToTab && (
+                        <button
+                          type="button"
+                          onClick={() => onNavigateToTab('contractManagement')}
+                          className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-medium text-white transition hover:bg-indigo-700"
+                        >
+                          打开合同管理
+                          <ArrowRight className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* 企业画像卡片 */}
                 {message.type === 'company-profile' && message.companies && (
                   <div className="mt-3 space-y-3">
@@ -2272,6 +2395,13 @@ export default function AIChatSidebar({ isOpen, onToggle, onNavigateToCompany, o
             >
               <FileText className="h-3 w-3" />
               年报报表
+            </button>
+            <button
+              onClick={() => setInputValue('最近有哪些合同')}
+              className="px-3 py-1.5 bg-gradient-to-r from-sky-100 to-cyan-100 hover:from-sky-200 hover:to-cyan-200 rounded-lg text-[11px] font-medium text-sky-700 transition flex items-center gap-1"
+            >
+              <FileText className="h-3 w-3" />
+              查最近合同
             </button>
           </div>
 

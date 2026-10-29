@@ -27,12 +27,14 @@ import GroupModule from './components/GroupModule';
 import GroupListModule from './components/GroupListModule';
 import EnterpriseModule from './components/EnterpriseModule';
 import EnterpriseListModule from './components/EnterpriseListModule';
+import ContractManagementModule from './components/contracts/ContractManagementModule';
 import SearchModule from './components/SearchModule';
 import IntelligenceModule from './components/IntelligenceModule';
 import KnowledgeModule from './components/KnowledgeModule';
 import MetricConfigModule from './components/MetricConfigModule';
 import AIChatSidebar from './components/AIChatSidebar';
 import { MetricConfigProvider } from './context/MetricConfigContext';
+import { ContractProvider } from './context/ContractContext';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
@@ -89,6 +91,9 @@ export default function App() {
             onNavigateToCompany={(id) => {
               setActiveCompanyId(id);
             }}
+            onNavigateToTab={(tabId) => {
+              setActiveTab(tabId);
+            }}
           />
         );
       case 'enterpriseSearch':
@@ -113,6 +118,8 @@ export default function App() {
             }}
           />
         );
+      case 'contractManagement':
+        return <ContractManagementModule onOpenAIChat={() => setAiChatOpen(true)} />;
       case 'intelligence':
         return <IntelligenceModule />;
       case 'knowledge':
@@ -139,6 +146,7 @@ export default function App() {
   const navMenuItems = [
     { id: 'dashboard', label: '数据大盘研判', desc: 'Cockpit overview', icon: LayoutDashboard },
     { id: 'enterpriseManagement', label: '企业管理', desc: 'Enterprise & Group management', icon: Building2 },
+    { id: 'contractManagement', label: '合同管理', desc: 'Contract lifecycle management', icon: FileText },
     { id: 'enterpriseSearch', label: '企业搜索', desc: 'Enterprise search', icon: SearchCode },
     { id: 'intelligence', label: '情报速递', desc: 'Intelligence system', icon: Radar },
     { id: 'knowledge', label: '知识库管理', desc: 'Knowledge base system', icon: Database },
@@ -147,6 +155,7 @@ export default function App() {
 
   return (
     <MetricConfigProvider>
+    <ContractProvider>
     <div id="saibao-applet-root" className="min-h-screen bg-slate-50/60 text-slate-800 font-sans flex flex-col md:flex-row">
       
       {/* 1. Left Persistent Sidebar - Hidden when standard printer layout activates */}
@@ -260,6 +269,9 @@ export default function App() {
         isOpen={aiChatOpen}
         onToggle={() => setAiChatOpen(!aiChatOpen)}
         currentPage={activeTab}
+        onNavigateToTab={(tabId) => {
+          setActiveTab(tabId);
+        }}
         onNavigateToCompany={(id) => {
           setActiveCompanyId(id);
           setActiveTab('enterprisePortrait');
@@ -267,6 +279,7 @@ export default function App() {
       />
 
     </div>
+    </ContractProvider>
     </MetricConfigProvider>
   );
 }

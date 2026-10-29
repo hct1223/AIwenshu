@@ -32,11 +32,13 @@ import {
 interface EnterpriseModuleProps {
   activeCompanyId: string;
   onNavigateToCompany: (id: string) => void;
+  onNavigateToTab?: (tabId: string) => void;
 }
 
 export default function EnterpriseModule({ 
   activeCompanyId, 
-  onNavigateToCompany 
+  onNavigateToCompany,
+  onNavigateToTab,
 }: EnterpriseModuleProps) {
   
   // Local states for cooperation contract tracking
@@ -713,6 +715,16 @@ export default function EnterpriseModule({
 
           {/* Action filters */}
           <div className="flex flex-wrap items-center gap-2.5 self-start md:self-center">
+            {onNavigateToTab && (
+              <button
+                type="button"
+                onClick={() => onNavigateToTab('contractManagement')}
+                className="inline-flex items-center gap-1 rounded-md border border-indigo-100 bg-indigo-50 px-2.5 py-1.5 text-[11px] font-medium text-indigo-700 transition hover:bg-indigo-100"
+              >
+                合同管理
+                <ArrowRight className="h-3 w-3" />
+              </button>
+            )}
             {/* Real-time search query box */}
             <div className="relative">
               <input 

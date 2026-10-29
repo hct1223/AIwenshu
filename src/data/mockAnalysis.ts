@@ -386,6 +386,7 @@ export const MOCK_DERIVED_TYPES = new Set<string>([
   'group-comparison',
   'statistics',
   'contract-info',
+  'contract-management',
   'monthly-report',
   'annual-report',
   'mock-analysis'
